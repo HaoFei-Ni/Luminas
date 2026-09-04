@@ -68,3 +68,42 @@ def check_latency_regression(
         return None
     pct = max_ratio * 100.0
     return f"延迟回归超限：current={current_s:.6g}s baseline={baseline_s:.6g}s limit={limit:.6g}s (≤{pct:g}%)"
+
+
+def interleaved_relative_score(
+    calib: Callable[[], None],
+    workload: Callable[[], None],
+    *,
+    warmup_pairs: int = 8,
+    timed_pairs: int = 120,
+    median_of: int = 5,
+) -> float:
+    """Return median(kernel/calib) from interleaved wall-time pairs (Windows-stable)."""
+    # 必须先热身：冷缓存会把首比值抬高并击穿 2% 门。
+    for _ in range(warmup_pairs):
+        calib()
+        workload()
+    # 必须多次取中位：单次交错窗仍可能被调度尖峰污染。
+    ratios = [_one_interleaved_ratio(calib, workload, timed_pairs) for _ in range(median_of)]
+    return sorted(ratios)[len(ratios) // 2]
+
+
+def _one_interleaved_ratio(
+    calib: Callable[[], None],
+    workload: Callable[[], None],
+    timed_pairs: int,
+) -> float:
+    """Accumulate one interleaved calib/kernel window and return kern/calib."""
+    calib_s = 0.0
+    kern_s = 0.0
+    # 必须同窗交替：独立两次 mean 的比值在短计时下噪声常 >> 2%。
+    for _ in range(timed_pairs):
+        start = time.perf_counter()
+        calib()
+        calib_s += time.perf_counter() - start
+        start = time.perf_counter()
+        workload()
+        kern_s += time.perf_counter() - start
+    if calib_s <= 0.0:
+        raise RuntimeError("calibration mean must be positive")
+    return kern_s / calib_s

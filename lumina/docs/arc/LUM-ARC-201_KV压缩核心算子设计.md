@@ -43,9 +43,12 @@
 
 有损对照一律落在 `kernel/baseline/` 与 `kernel/cuda/`，经 `_luma_baseline` / `_luma_cuda` 导出。
 
-### 2.3 压缩比叙事
+### 2.3 压缩比与无损叙事
 
-恒等占位已退役。RLE 可在重复值上取得 `enc_len < 2n`；ρ 仅可在实验归档中报告。称「无损」仍须通过 `lumina-res-skill` 三级门（本候选仅保证 bit-exact 重构与工程 2-ulp）。
+恒等占位已退役。RLE 可在重复值上取得 `enc_len < 2n`；ρ 仅可在实验归档中报告。
+
+- **算子重构**：`KV-ENC-CANDIDATE-1` 为 bit-exact；Level 1 归档见 `experiments/EXP-001_kv-rle-bitexact/`。
+- **论文级无损**：在 Level 1 PASS 且恒等引理适用时，按 `LUM-RES-001` §2.1 可称「论文级无损（算子重构）」；经验 L2/L3 套件用于防回归与披露，不放宽 L1。
 
 ## 3. 公式 ID 槽位（待填真公式）
 

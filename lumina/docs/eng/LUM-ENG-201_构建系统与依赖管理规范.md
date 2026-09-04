@@ -49,9 +49,10 @@
 ```powershell
 cd lumina
 uv run python -m tools.run_build --test
+uv run python -m tools.run_build --cuda --test   # 可选：编 _luma_cuda + 有损 CUDA 基线
 ```
 
-包装器会：发现 CMake/Ninja →（若无 `cl`）经 `vcvarsall x64` 注入 MSVC → `cmake --preset windows-ninja` → build → 可选 ctest。
+包装器会：发现 CMake/Ninja/(可选) CUDA `nvcc` →（若无 `cl`）经 `vcvarsall x64` 注入 MSVC → `cmake --preset windows-ninja` 或 `windows-ninja-cuda` → build → 可选 ctest。
 
 等价手动：
 

@@ -4,6 +4,7 @@ add_library(luma_algorithm STATIC
     luma_status.c
     luma_kv_finite.c
     luma_kv_ref.c
-    luma_kv_codec.c
+    luma_kv_encode.c
+    luma_kv_decode.c
 )
 target_include_directories(luma_algorithm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

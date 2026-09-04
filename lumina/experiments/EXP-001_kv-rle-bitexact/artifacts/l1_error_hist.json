@@ -1,0 +1,14 @@
+{
+  "method": "KV-ENC-CANDIDATE-1",
+  "total_elements": 69697,
+  "passed_elements": 69697,
+  "pass_rate": 1.0,
+  "l1_threshold": 0.999,
+  "verdict": "PASS",
+  "log10_abs_err_hist": {
+    "counts": [],
+    "bin_edges": [
+      0.0
+    ]
+  }
+}

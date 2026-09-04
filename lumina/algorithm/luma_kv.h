@@ -44,14 +44,9 @@ const char *luma_strerror(int rc);
  */
 int luma_kv_ref_copy_f64(const double *x, long n, double *out);
 
-/* 候选产品 Enc/Dec（公式 ID：KV-ENC-CANDIDATE-1，见 LUM-ARC-201）。
- *
- * 精确 f32 游程编码：码流为 (value, count) 对；count∈[1,2^24] 且 float 可精确表示。
- * 最坏 enc_len==2n（全互异）；可压缩时 enc_len<2n。禁止未过三级门称「无损」。
- * 真公式再升级时保持本签名；调用方应按最坏情况提供 enc_cap≥2n（n>0）。
- *
- * 2-ulp 门：|Ŝ_i - S_i| <= 2 * 2^{-23} * max(1, |S_i|)，且无 NaN/Inf。
- * 输入输出不得重叠。
+/* 产品 Enc/Dec（KV-ENC-CANDIDATE-1）：精确 f32 RLE，重构 bit-exact。
+ * 实现：luma_kv_encode.c / luma_kv_decode.c。调用方 enc_cap≥2n（n>0）。
+ * 2-ulp / 论文 L1：|Ŝ_i-S_i|≤2·2^{-23}·max(1,|S_i|)；无 NaN/Inf。
  * 返回：LUMA_OK | LUMA_ERR_ARG | LUMA_ERR_NUMERIC | LUMA_ERR_UNSUPPORTED
  */
 int luma_kv_encode_f32(const float *x, long n, float *enc, long enc_cap, long *enc_len);

@@ -12,7 +12,11 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from tools.checks.performance.protocol import DEFAULT_MAX_REGRESSION, check_latency_regression, time_callable
+from tools.checks.performance.protocol import (
+    DEFAULT_MAX_REGRESSION,
+    check_latency_regression,
+    interleaved_relative_score,
+)
 from tools.checks.performance.workloads import bench_workloads, make_calib
 
 _BASELINE_SCHEMA = 1
@@ -91,17 +95,12 @@ def _load_baseline_or_violation(baseline_path: Path) -> dict[str, Any] | list[di
 
 
 def _measure_relative_scores() -> dict[str, float]:
-    """Calibrate then bench; return relative scores (kernel/calib)."""
-    # 丢弃首次测量：避免冷启动把基线锁得过紧。
-    _ = time_callable(make_calib())
-    calib = time_callable(make_calib())
-    if calib.mean_s <= 0.0:
-        raise RuntimeError("calibration mean must be positive")
+    """Return kernel/calib ratios via interleaved wall time (stable on Windows)."""
     scores: dict[str, float] = {}
-    # 单遍：每个固定 workload 一份相对分数，避免把校准自身再当 bench。
+    calib_fn = make_calib()
+    # 必须逐 workload 计分：禁止把校准自身再当 bench。
     for name, workload in bench_workloads().items():
-        timed = time_callable(workload)
-        scores[name] = timed.mean_s / calib.mean_s
+        scores[name] = interleaved_relative_score(calib_fn, workload)
     return scores
 
 

@@ -237,12 +237,14 @@ ignore = [
 #   数学符号标识符直接镜像论文公式（N803/N806）、对照脚本内联魔法数值（PLR2004）；
 #   S101/S311：契约校验与显式播种的 Monte Carlo，非密码学场景
 [tool.ruff.lint.per-file-ignores]
-# INP001：tests/theory 为 pytest/脚本树，刻意不用包 __init__.py；正式可导入包再建 __init__.py
+# INP001：tests/theory/experiments 为脚本树，刻意不用包 __init__.py；正式可导入包再建 __init__.py
 # lumina/tests/**：pre-commit 在仓库根调用时路径带 lumina/ 前缀，须与 tests/** 同等豁免
 "tests/**" = ["ANN001", "ANN201", "ANN401", "D100", "D103", "D403", "INP001", "PLR2004", "S101", "S311"]
 "lumina/tests/**" = ["ANN001", "ANN201", "ANN401", "D100", "D103", "D403", "INP001", "PLR2004", "S101", "S311"]
 "theory/**" = ["ANN001", "B905", "D100", "D103", "D205", "D212", "D415", "INP001", "N802", "N803", "N806", "PLR0913", "PLR0917", "PLR2004", "S101", "S311"]
 "lumina/theory/**" = ["ANN001", "B905", "D100", "D103", "D205", "D212", "D415", "INP001", "N802", "N803", "N806", "PLR0913", "PLR0917", "PLR2004", "S101", "S311"]
+"experiments/**" = ["ANN001", "ANN201", "D100", "D103", "INP001", "PLR2004", "S311"]
+"lumina/experiments/**" = ["ANN001", "ANN201", "D100", "D103", "INP001", "PLR2004", "S311"]
 
 # ------------------------------ isort 导入排序配置 ------------------------------
 [tool.ruff.lint.isort]

@@ -1,11 +1,13 @@
 {
   "schema": 1,
   "protocol": {
-    "warmup": 2,
-    "timed": 5,
-    "max_regression": 0.02
+    "warmup": 8,
+    "timed_pairs": 120,
+    "median_of": 5,
+    "max_regression": 0.02,
+    "score_agg": "interleaved_median5"
   },
   "scores": {
-    "luma_kv_encode_decode_f32": 0.005033733988501752
+    "luma_kv_encode_decode_f32": 0.12291372490473064
   }
 }

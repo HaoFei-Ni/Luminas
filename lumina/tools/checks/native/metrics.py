@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from tools.checks.comments.comments import uncommented_complex_c_lines
+from tools.checks.native.complexity import measure_c_complexity
 from tools.checks.native.doc_comments import has_file_banner, has_leading_doc_comment
 from tools.checks.native.function_spans import function_spans
 from tools.checks.native.loop_nesting import scan_loops
@@ -30,7 +31,7 @@ _C_SUFFIXES = frozenset({".c", ".h", ".cu", ".cuh", ".cpp", ".hpp", ".cc"})
 
 @dataclass(frozen=True)
 class CFunctionMetrics:
-    """单函数：物理行数、循环嵌套/个数、自递归、前置文档、缺行内注释的复杂行数."""
+    """单函数：物理行数、循环、圈复杂度、if 嵌套、自递归、文档、复杂行."""
 
     file_key: str
     name: str
@@ -38,6 +39,8 @@ class CFunctionMetrics:
     start_line: int
     loop_nesting: int
     loop_count: int
+    cyclomatic: int
+    if_nesting: int
     has_recursion: bool
     has_doc_comment: bool
     uncommented_complex: int
@@ -137,6 +140,7 @@ def _function_metric(
     """Build metrics for one function span."""
     body = raw_lines[start - 1 : end]
     nesting, count = scan_loops(body)
+    cyclomatic, if_nesting = measure_c_complexity(body)
     return CFunctionMetrics(
         file_key=file_key,
         name=name,
@@ -144,6 +148,8 @@ def _function_metric(
         start_line=start,
         loop_nesting=nesting,
         loop_count=count,
+        cyclomatic=cyclomatic,
+        if_nesting=if_nesting,
         has_recursion=has_self_recursion(name, body),
         has_doc_comment=has_leading_doc_comment(raw_lines, start),
         uncommented_complex=len(uncommented_complex_c_lines(body, require_why=require_why)),

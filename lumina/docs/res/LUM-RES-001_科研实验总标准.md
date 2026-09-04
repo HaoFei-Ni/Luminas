@@ -2,8 +2,8 @@
 
 | 字段 | 内容 |
 |:---|:---|
-| 状态 | 草案 |
-| 版本 | 1.1 |
+| 状态 | 生效 |
+| 版本 | 1.2 |
 | 日期 | 2026-09-05 |
 | 权威技能 | `lumina-res-skill` |
 | 关联文档 | `LUM-RES-101` · `LUM-RES-201` · `LUM-RES-301` · `references/experiment-matrix.md` |
@@ -14,7 +14,7 @@
 
 ## 2. 无损的唯一定义
 
-可称为 **无损 / lossless**，当且仅当下列三级门槛在锁定套件上全部通过：
+可称为 **无损 / lossless / 论文级无损**，当且仅当下列三级门槛满足（锁定套件见 `experiment-matrix.md`）：
 
 | Level | 内容 | 通过条件（摘要） |
 |---|---|---|
@@ -22,7 +22,16 @@
 | 2 模型 | WikiText-2 test，stride 512，与未压缩基线同 harness | n = 5，seeds `{0,1,2,3,4}`；`ΔPPL ≤ 0.01` 且 Wilcoxon `p > 0.05` 且 `|d| < 0.2` |
 | 3 任务 | MMLU 5-shot + 锁定 LongBench；长上下文 RULER / NIAH | 核心分数下降 ≤ 1.0 百分点且差异不显著（`p > 0.05`） |
 
-任一 Level 失败：论文须标明 lossless 区域边界（比率或长度）。未过门槛一律写作 **candidate lossless path**。禁止 “zero degradation” / “bit-exact with baseline” 等表述。
+### 2.1 Bit-exact 恒等条款（产品 Enc/Dec）
+
+当产品路径在论域上证明 `D∘E = id`（逐元 bit-exact，且 Level 1 已归档 PASS）时：
+
+- 任意仅经 KV 张量读写的确定性评测泛函 `f` 满足 `f(D(E(K)), D(E(V))) = f(K, V)`。
+- Level 2 / 3 **由恒等引理成立**；经验套件用于防回归与披露吞吐 / 压缩比，**不得**用来放宽 Level 1。
+- 论文可称 **论文级无损（算子重构）**；归档入口：`experiments/EXP-001_kv-rle-bitexact/`。
+- 禁止写作 “zero degradation” / “bit-exact with baseline network” 等模糊口号；须写清公式 ID（现行 `KV-ENC-CANDIDATE-1`）与 L1 归档路径。
+
+非 bit-exact 方法仍须按上表实测 Level 2 / 3。任一实测 Level 失败：论文须标明 lossless 区域边界（比率或长度）。未满足 Level 1 或无法证明恒等时，一律写作 **candidate lossless path**。
 
 ## 3. 统计（唯一规则）
 

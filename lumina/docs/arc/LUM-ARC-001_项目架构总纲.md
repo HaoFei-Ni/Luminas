@@ -18,7 +18,7 @@ Luminas 为**原创架构项目**：目标是一套新的无损 KV-cache 压缩�
 
 ## 3. 核心主张
 
-1. **无损声明**：仅当通过 `lumina-res-skill` 三级门槛（数值 → 模型 PPL → 任务）后方可称为无损。通过前一律写作 **candidate lossless path**，并报告实测数字。
+1. **无损声明**：bit-exact 产品路径在 Level 1 归档 PASS 且适用恒等条款（`LUM-RES-001` §2.1）时可称 **论文级无损（算子重构）**；非 bit-exact 方法须实测三级门。未满足时写作 **candidate lossless path**，并报告实测数字。
 2. **长上下文**：由原生 cache 与 hybrid attention 设计承载；不以 RoPE / YaRN / ALiBi 等位置插值作为长上下文故事的主结论。
 3. **实现归属**：平台无关压缩数学不得进入 Python 或绑定层；原创实现仅落于 `lumina/`。
 

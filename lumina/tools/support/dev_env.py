@@ -68,9 +68,29 @@ def find_ninja() -> Path:
     raise FileNotFoundError("ninja not found. Run: . .\\lumina\\scripts\\dev-env.ps1 -PersistUserPath")
 
 
+def find_cuda_bin() -> Path | None:
+    """Return CUDA ``bin`` directory containing ``nvcc`` when present."""
+    which = shutil.which("nvcc")
+    if which:
+        return Path(which).resolve().parent
+    root = Path(r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA")
+    if not root.is_dir():
+        return None
+    versions = sorted((p for p in root.iterdir() if p.is_dir()), reverse=True)
+    # 必须扫版本目录：Toolkit 多版本并存时选最新可用 nvcc。
+    for ver in versions:
+        nvcc = ver / "bin" / "nvcc.exe"
+        if nvcc.is_file():
+            return nvcc.parent
+    return None
+
+
 def prepend_tool_bins_to_path() -> None:
-    """Ensure cmake/ninja directories are on PATH for child processes in this interpreter."""
+    """Ensure cmake/ninja/(optional) CUDA bins are on PATH for child processes."""
     bins = _resolved_bins()
+    cuda_bin = find_cuda_bin()
+    if cuda_bin is not None:
+        bins.append(str(cuda_bin))
     if not bins:
         return
     key = _path_key()

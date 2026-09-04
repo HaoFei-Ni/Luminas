@@ -247,12 +247,12 @@ P0（立即，阻塞对外表述）
   └─ P0.4 撰写 ARC-201/301 最小可生效正文（F-A2）← 可与公式选型并行草稿
 
 P1（版本内 = M1 候选无损路径，见 LUM-PM-001）
-  ├─ P1.1 真 Enc/Dec + C/Py L1/L5（F-A1）
-  ├─ P1.2 Hypothesis 产品接线 + test-ha（F-S2）
-  ├─ P1.3 L4 换产品核基线（F-S1）
-  ├─ P1.4 CUDA 可选 CI + 测试（F-S3）
-  ├─ P1.5 C McCabe/嵌套门禁落地（F-G1 + target toml）
-  └─ P1.6 替换 quality-gate.toml ← quality-gate.l5-target.toml
+  ├─ P1.1 真 Enc/Dec + C/Py L1/L5（F-A1）✅
+  ├─ P1.2 Hypothesis 产品接线 + test-ha（F-S2）✅
+  ├─ P1.3 L4 换产品核基线（F-S1）✅
+  ├─ P1.4 CUDA 可选 CI + 测试（F-S3）✅ `run_build --cuda` · `@cuda` · `_luma_cuda`
+  ├─ P1.5 C McCabe/嵌套门禁落地（F-G1 + target toml）✅ CC≤5 / if≤2（baseline/cuda 豁免）
+  └─ P1.6 替换 quality-gate.toml ← quality-gate.l5-target.toml ✅（二者同步）
 
 P2（长期 = M2+ 工业开源形态）
   ├─ P2.1 runtime/ Scheduler（F-A3.1）+ ARC-101 补丁
@@ -266,7 +266,7 @@ P2（长期 = M2+ 工业开源形态）
 
 - **真 codec（P1.1）依赖** ARC-201 公式锁定（P0.4）。
 - **L4 产品核（P1.3）依赖** P1.1 或至少可重复的 native 扩展构建。
-- **三级无损宣称依赖** P1.1 + P2.3；与门禁绿无关。
+- **论文级无损（算子重构）依赖** P1.1 + EXP-001 Level 1 归档 + `LUM-RES-001` §2.1 恒等条款；完整经验 L2/L3 表仍走 P2.3。
 - **runtime/ 依赖** 稳定 Binding；勿与 P0 并行大挪移。
 
 ### 停止点（本评审明确不做）
@@ -280,3 +280,4 @@ P2（长期 = M2+ 工业开源形态）
 | 版本 | 日期 | 说明 |
 |---|---|---|
 | 1.0 | 2026-09-05 | 首版全量评审交付；基准 `d3120b2` |
+| 1.1 | 2026-09-05 | P1.4–P1.6 落地；EXP-001 L1 归档；论文级无损恒等条款对齐 RES-001 |

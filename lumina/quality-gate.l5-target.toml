@@ -1,18 +1,9 @@
 # ==============================================================================
-# Luminas 质量门禁 — L5 目标配置（可替换草案）
-# ------------------------------------------------------------------------------
-# 用途：审查通过后整文件替换 quality-gate.toml。
-# 权威评审：docs/eng/LUM-ENG-401_全量质量评审与整改路线图.md
+# 代码质量门禁配置文件（全量门禁的唯一真值源）— L5 工业档
 # 执行器：tools.run_quality_gate
 #          → reporting.python_gate / checks.native.gate / naming.gate / performance.gate
-#          提交前：tools.complexity_precommit
-#
-# 相对现行 quality-gate.toml 的故意收紧 / 增补：
-#   1. [c_thresholds] 增加圈复杂度≤5、if 嵌套≤2（对齐 lumina-eng-skill；需 native.gate 读键）
-#   2. [perf_standard] 声明产品核工作负载键（需 workloads.py 同步）
-#   3. [hypothesis] 保持 ha=5000；增补产品路径测试约定注释
-#   4. 清除旧模块名（ci_quality_gate / c_quality_gate）表述
-#   5. 禁止放宽 Python 5-nines 既有阈值
+# 提交前：tools.complexity_precommit
+# 镜像备份：quality-gate.l5-target.toml（与本文件同步维护）
 # ==============================================================================
 
 [cache]
@@ -163,11 +154,19 @@ enable_if_nesting_check = true
 [c_exclusions]
 file_patterns = ["**/tests/**", "**/.cache/**"]
 loop_allowed_file_patterns = ["kernel/**", "wrapper/**"]
+# 有损基线 / CUDA 核暂豁免 McCabe；产品 algorithm + _luma_native 强制 ≤5/≤2
+complexity_exempt_file_patterns = [
+    "kernel/**",
+    "wrapper/luma_bind_baseline.cpp",
+    "wrapper/luma_bind_cuda.cpp",
+]
 loop_allowed_functions = [
     "luma_kv_require_finite_f32",
     "luma_kv_require_finite_f64",
     "luma_kv_encode_f32",
     "luma_kv_decode_f32",
+    "luma_kv_encode_runs",
+    "luma_kv_decode_runs",
     "luma_kv_run_length",
     "luma_kv_expand_run",
 ]

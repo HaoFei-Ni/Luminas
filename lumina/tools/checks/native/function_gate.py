@@ -55,7 +55,38 @@ def _structure_checks(
     """Build enabled/over/issue tuples for one function."""
     return [
         *_size_loop_checks(func, features, thresholds, exclusions),
+        *_complexity_checks(func, features, thresholds, exclusions),
         *_doc_inline_checks(func, features, exclusions),
+    ]
+
+
+def _complexity_checks(
+    func: CFunctionMetrics,
+    features: dict[str, Any],
+    thresholds: dict[str, Any],
+    exclusions: dict[str, Any],
+) -> list[_Check]:
+    """Cyclomatic / if-nesting checks (eng-skill ≤5 / ≤2)."""
+    max_cc = int(thresholds.get("max_cyclomatic_complexity", 5))
+    max_if = int(thresholds.get("max_if_nesting_depth", 2))
+    patterns = list(exclusions.get("complexity_exempt_file_patterns", []))
+    # 基线/CUDA 暂豁免：产品 algorithm 与 native 绑定仍强制 McCabe。
+    exempt = any(fnmatch.fnmatch(func.file_key, pattern) for pattern in patterns)
+    return [
+        (
+            features.get("enable_cyclomatic_check", False),
+            (not exempt) and func.cyclomatic > max_cc,
+            "C函数圈复杂度超限",
+            func.cyclomatic,
+            max_cc,
+        ),
+        (
+            features.get("enable_if_nesting_check", False),
+            (not exempt) and func.if_nesting > max_if,
+            "C函数if嵌套超限",
+            func.if_nesting,
+            max_if,
+        ),
     ]
 
 

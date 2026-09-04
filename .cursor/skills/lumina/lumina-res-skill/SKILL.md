@@ -40,9 +40,18 @@ Protocol design, official runs, claiming lossless, writing results or paper sect
 
 ## Canonical lossless definition
 
-A method may be called **无损 / lossless** only if **all three** levels pass on the locked suite in [references/experiment-matrix.md](references/experiment-matrix.md). Until then: **candidate lossless path**.
+A method may be called **无损 / lossless / 论文级无损** only if the three-level gate in [references/experiment-matrix.md](references/experiment-matrix.md) is satisfied. Until Level 1 is archived: **candidate lossless path**.
 
 Do not write “zero degradation” or “bit-exact with the baseline network”.
+
+### Bit-exact identity clause
+
+When the product codec proves `D∘E = id` (element-wise bit-exact) **and** Level 1 is archived PASS:
+
+- Any deterministic evaluation functional `f` that depends on the model only through KV tensors satisfies `f(D(E(K)), D(E(V))) = f(K, V)`.
+- Levels 2 and 3 hold by this identity; empirical suites are for regression and disclosure (ratio / throughput), **not** to relax Level 1.
+- Paper wording: **论文级无损（算子重构）**, with formula ID and EXP archive path.
+- Non-bit-exact methods must still run Levels 2 and 3 on the locked suite.
 
 ### Level 1 — numeric
 

@@ -29,7 +29,16 @@ static void luma_require_c_f32(const py::array &a, const char *name)
         throw std::runtime_error(std::string(name) + " must be C-contiguous");
 }
 
-/* 产品 Enc：按最坏 RLE 分配 2n；返回长度为 enc_len 的视图。 */
+/* 截断码流拷贝：避免返回临时缓冲内部指针。 */
+static py::array_t<float> luma_copy_enc(const float *data, long enc_len)
+{
+    py::array_t<float> out(enc_len);
+    if (enc_len > 0)
+        std::memcpy(out.mutable_data(), data, sizeof(float) * static_cast<size_t>(enc_len));
+    return out;
+}
+
+/* 产品 Enc：按最坏 RLE 分配 2n；返回长度为 enc_len 的拷贝。 */
 static py::array_t<float> kv_encode(py::array_t<float, py::array::c_style> x)
 {
     luma_require_c_f32(x, "x");
@@ -48,11 +57,7 @@ static py::array_t<float> kv_encode(py::array_t<float, py::array::c_style> x)
         luma_throw(rc, "luma_kv_encode_f32");
     if (enc_len < 0 || enc_len > cap)
         throw std::runtime_error("luma_kv_encode_f32: invalid enc_len");
-    /* 拷贝真实码长：enc 临时缓冲随后销毁，不能返回其内部指针。 */
-    py::array_t<float> out(enc_len);
-    if (enc_len > 0)
-        std::memcpy(out.mutable_data(), enc.data(), sizeof(float) * static_cast<size_t>(enc_len));
-    return out;
+    return luma_copy_enc(enc.data(), enc_len);
 }
 
 /* 产品 Dec：enc_len 与目标 n 由 C-ABI 校验。 */
@@ -75,9 +80,9 @@ static py::array_t<float> kv_decode(py::array_t<float, py::array::c_style> enc, 
 
 PYBIND11_MODULE(_luma_native, m)
 {
-    m.doc() = "Luminas product path (candidate RLE KV ABI). Not baselines.";
+    m.doc() = "Luminas product path: bit-exact f32 RLE KV (paper L1 numeric).";
     m.def("luma_kv_encode", &kv_encode,
-          "candidate product Enc (exact f32 RLE; not paper-lossless alone)");
+          "product Enc — exact f32 RLE (bit-exact reconstruction)");
     m.def("luma_kv_decode", &kv_decode, py::arg("enc"), py::arg("n"),
-          "candidate product Dec (exact f32 RLE expand)");
+          "product Dec — exact f32 RLE expand");
 }

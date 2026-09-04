@@ -35,4 +35,4 @@ hparams: {...}
 1. 开跑前锁定 lab log（`../research/`），跑完再归档。
 2. 每张表 / 图绑定 manifest 中的 commit；保留失败 run。
 3. 数字口径：mean ± std、n = 5；确定性 kernel bench 为 2 warmup + 5 timed。
-4. 未过三级门的结论不得标注 “lossless”（`../docs/res/LUM-RES-001`）。
+4. 无损口径以 `../docs/res/LUM-RES-001` 为准（含 bit-exact 恒等条款）；禁止 “zero degradation” 等模糊口号。
