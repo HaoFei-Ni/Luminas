@@ -56,16 +56,20 @@ include_paths = [
     "theory",
 ]
 
-# ------------------------------ Python 阈值 ------------------------------
-# 最优目标（渐进）：认知≤8 / 文件行≤300 / 函数数≤8 / 函数行≤50 / 圈≤8 / 嵌套≤3
-# 现行：存量可过；认知/函数数/圈/嵌套仍高于最优，拆分后下调。
+# ------------------------------ Python 阈值（最优工业档；存量须拆分达标，禁止放宽） ------------------------------
 [thresholds]
-max_cognitive_complexity = 15
+max_cognitive_complexity = 8
 max_file_physical_lines = 300
-max_function_count_per_file = 12
-max_function_physical_lines = 60
-max_cyclomatic_complexity = 17
-max_control_nesting_depth = 5
+max_function_count_per_file = 8
+max_function_physical_lines = 50
+max_cyclomatic_complexity = 8
+max_control_nesting_depth = 3
+
+max_code_duplication_ratio = 4        # 当前：专业生产级标准；可接受标准：≤10%（存量兼容）；最优标准：≤3%（顶级工业级）；重复率越高复用度越差，冗余代码越多维护成本指数级上升
+max_cyclic_dependencies = 0           # 当前：架构强制红线；可接受标准：必须为0；最优标准：必须为0；循环依赖会导致模块耦合坏死、无法独立复用，属于架构设计致命缺陷
+max_module_fan_out = 10               # 当前：中等耦合标准；可接受标准：≤15；最优标准：≤8（低耦合高内聚）；扇出越高模块依赖越杂、复用难度越大，核心公共模块扇出应控制更低
+max_inheritance_depth = 4             # 当前：合理抽象层级；可接受标准：≤5；最优标准：≤3（扁平抽象架构）；继承过深会导致逻辑碎片化、理解成本飙升，过浅则说明抽象抽取不足
+max_duplicate_code_blocks = 1         # 当前：存量宽松标准；可接受标准：≤5；最优标准：0（无重复逻辑块）；重复代码块是复用缺失的直接体现，核心逻辑应唯一实现、多处调用
 
 [line_counting]
 count_blank_lines = false

@@ -1,6 +1,6 @@
 """Python 侧复杂语句行内注释门禁（由 comment_standard 驱动）.
 
-从 ``ci_quality_gate`` 拆出，避免单文件函数数超过阈值 12。
+从 ``ci_quality_gate`` 拆出，避免单文件函数数超过阈值。
 L0：邻接 ``#`` 存在即可；L4：``why_include_file_patterns`` 命中时要求 why 线索。
 """
 
@@ -63,24 +63,37 @@ def _file_violations(
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source)
     raw = source.splitlines()
-    out: list[dict[str, str]] = []
     issue = "Python复杂语句缺少why行内注释" if require_why else "Python复杂语句缺少行内注释"
+    out: list[dict[str, str]] = []
     # 单遍：只处理函数节点，避免类体/模块级误报。
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
-        if node.name in skip_names:
-            continue
-        start = node.lineno
-        end = node.end_lineno or start
-        missing = uncommented_complex_py_lines(raw[start - 1 : end], require_why=require_why)
-        if missing:
-            out.append(
-                {
-                    "target": f"{file_key}::{node.name}",
-                    "issue": issue,
-                    "current": str(len(missing)),
-                    "limit": "0",
-                }
-            )
+        record = _function_inline_violation(node, file_key, raw, skip_names, issue, require_why)
+        if record:
+            out.append(record)
     return out
+
+
+def _function_inline_violation(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+    file_key: str,
+    raw: list[str],
+    skip_names: set[str],
+    issue: str,
+    require_why: bool,
+) -> dict[str, str] | None:
+    """Return one violation record for a function missing inline why-comments."""
+    if node.name in skip_names:
+        return None
+    start = node.lineno
+    end = node.end_lineno or start
+    missing = uncommented_complex_py_lines(raw[start - 1 : end], require_why=require_why)
+    if not missing:
+        return None
+    return {
+        "target": f"{file_key}::{node.name}",
+        "issue": issue,
+        "current": str(len(missing)),
+        "limit": "0",
+    }

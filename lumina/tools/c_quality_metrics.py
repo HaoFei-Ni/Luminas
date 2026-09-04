@@ -7,22 +7,25 @@
 from __future__ import annotations
 
 import fnmatch
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from tools.c_doc_comments import has_file_banner, has_leading_doc_comment
+from tools.c_function_spans import function_spans
 from tools.c_loop_nesting import scan_loops
 from tools.c_recursion import has_self_recursion
 from tools.inline_comments import uncommented_complex_c_lines
 
+__all__ = [
+    "CFileMetrics",
+    "CFunctionMetrics",
+    "as_file_key",
+    "collect_c_files",
+    "function_spans",
+    "measure_c_files",
+]
+
 _C_SUFFIXES = {".c", ".h", ".cu", ".cuh", ".cpp", ".hpp", ".cc"}
-_CONTROL = frozenset({"if", "for", "while", "switch", "do"})
-# 定义形态：限定词* 返回类型 名(...){ ；排除仅有分号的原型。
-_FUNC_DEF = re.compile(
-    r"(?:(?:__\w+|static|inline|extern|constexpr)\s+)*"
-    r"[\w\s\*<>,:]+?\s+(\w+)\s*\([^;]*\)\s*\{"
-)
 
 
 @dataclass(frozen=True)
@@ -74,24 +77,27 @@ def measure_c_files(
     *,
     why_file_patterns: list[str] | None = None,
 ) -> tuple[list[CFileMetrics], list[CFunctionMetrics]]:
-    """测量文件级与函数级结构指标.
-
-    ``why_file_patterns`` 命中时对该文件启用 L4 why 语义（邻接注释须含 why 线索）.
-    """
+    """测量文件级与函数级结构指标."""
     files: list[CFileMetrics] = []
     functions: list[CFunctionMetrics] = []
     why_patterns = list(why_file_patterns or [])
     # 单遍：逐文件测量，避免跨文件状态污染指标。
     for path in collect_c_files(paths, exclude_patterns):
         file_key = as_file_key(path)
-        require_why = bool(why_patterns) and (
-            any(pat in {"**", "**/*", "*"} for pat in why_patterns)
-            or any(fnmatch.fnmatch(file_key, pat) for pat in why_patterns)
-        )
+        require_why = _require_why(file_key, why_patterns)
         file_metrics, func_metrics = _measure_one(path, require_why=require_why)
         files.append(file_metrics)
         functions.extend(func_metrics)
     return files, functions
+
+
+def _require_why(file_key: str, why_patterns: list[str]) -> bool:
+    """True when L4 why patterns apply to this file key."""
+    if not why_patterns:
+        return False
+    if any(pat in {"**", "**/*", "*"} for pat in why_patterns):
+        return True
+    return any(fnmatch.fnmatch(file_key, pat) for pat in why_patterns)
 
 
 def _collect_root(base: Path) -> list[Path]:
@@ -116,121 +122,43 @@ def _measure_one(path: Path, *, require_why: bool = False) -> tuple[CFileMetrics
         is_header=path.suffix in {".h", ".cuh", ".hpp"},
         has_file_banner=has_file_banner(raw_lines),
     )
-    functions: list[CFunctionMetrics] = []
-    # 单遍：span 互不重叠，避免嵌套静态函数重复计量。
-    for name, start, end in spans:
-        body = raw_lines[start - 1 : end]
-        nesting, count = scan_loops(body)
-        functions.append(
-            CFunctionMetrics(
-                file_key=file_key,
-                name=name,
-                lines=_count_physical(body),
-                start_line=start,
-                loop_nesting=nesting,
-                loop_count=count,
-                has_recursion=has_self_recursion(name, body),
-                has_doc_comment=has_leading_doc_comment(raw_lines, start),
-                uncommented_complex=len(uncommented_complex_c_lines(body, require_why=require_why)),
-            )
-        )
+    functions = [_function_metric(file_key, raw_lines, name, start, end, require_why) for name, start, end in spans]
     return file_metrics, functions
+
+
+def _function_metric(
+    file_key: str,
+    raw_lines: list[str],
+    name: str,
+    start: int,
+    end: int,
+    require_why: bool,
+) -> CFunctionMetrics:
+    """Build metrics for one function span."""
+    body = raw_lines[start - 1 : end]
+    nesting, count = scan_loops(body)
+    return CFunctionMetrics(
+        file_key=file_key,
+        name=name,
+        lines=_count_physical(body),
+        start_line=start,
+        loop_nesting=nesting,
+        loop_count=count,
+        has_recursion=has_self_recursion(name, body),
+        has_doc_comment=has_leading_doc_comment(raw_lines, start),
+        uncommented_complex=len(uncommented_complex_c_lines(body, require_why=require_why)),
+    )
 
 
 def _count_physical(lines: list[str]) -> int:
     """统计计入门禁的物理行（空行/整行注释不计）."""
-    return sum(1 for line in lines if _is_physical(line.strip()))
-
-
-def _is_physical(stripped: str) -> bool:
-    """是否计入行数：排除空行、``//``、单行 ``/* ... */``."""
-    return (
-        bool(stripped) and not stripped.startswith("//") and not (stripped.startswith("/*") and stripped.endswith("*/"))
-    )
-
-
-def function_spans(lines: list[str]) -> list[tuple[str, int, int]]:
-    """用花括号配对切出 ``(name, start_line, end_line)``（1-based，含端点）."""
-    spans: list[tuple[str, int, int]] = []
-    index = 0
-    # 单遍：跳过注释/预处理后定位定义，避免嵌套静态函数重复计数。
-    while index < len(lines):
-        if _skip_line(lines[index].strip()):
-            index += 1
+    total = 0
+    # 单遍：空行与整行注释不计物理行，避免虚高门禁行数。
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("//"):
             continue
-        name = _definition_name_at(lines, index)
-        brace_line = _opening_brace_line(lines, index) if name else None
-        end = _match_braces(lines, brace_line) if brace_line is not None else None
-        if name is None or brace_line is None or end is None:
-            index += 1
+        if stripped.startswith("/*") and stripped.endswith("*/"):
             continue
-        spans.append((name, index + 1, end + 1))
-        # 跳到函数结束后，避免嵌套静态函数被外层重复扫描（少见但安全）。
-        index = end + 1
-    return spans
-
-
-def _skip_line(stripped: str) -> bool:
-    """跳过空白、预处理、注释行.
-
-    块注释续行常以 ``*`` 开头；若不跳过，散文 ``O(n)`` 会在窗口碰到 ``{`` 时
-    被 ``_FUNC_DEF`` 误认为函数 ``O``。
-    """
-    return (
-        not stripped
-        or stripped.startswith("#")
-        or stripped.startswith("//")
-        or stripped.startswith("/*")
-        or stripped == "*/"
-        or stripped.startswith("*")
-    )
-
-
-def _definition_name_at(lines: list[str], start: int) -> str | None:
-    """若 ``start`` 起是函数定义（非原型），返回函数名."""
-    window: list[str] = []
-    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
-    for index in range(start, min(start + 12, len(lines))):
-        window.append(lines[index].rstrip())
-        joined = " ".join(part.strip() for part in window)
-        # 仅有分号、无花括号 → 原型，交给头文件文档检查。
-        if ";" in joined and "{" not in joined:
-            return None
-        if "{" not in joined:
-            continue
-        match = _FUNC_DEF.search(joined)
-        if match is None:
-            return None
-        name = match.group(1)
-        # C++ 初始化列表 ``Foo() : p_(0) {`` 可能把 ``p_`` 当成名；控制关键字直接丢掉。
-        return None if name in _CONTROL else name
-    return None
-
-
-def _opening_brace_line(lines: list[str], start: int) -> int | None:
-    """定义起始行起找首个 ``{``；途中先遇 ``;`` 则不是定义."""
-    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
-    for index in range(start, min(start + 12, len(lines))):
-        if "{" in lines[index]:
-            return index
-        if ";" in lines[index]:
-            return None
-    return None
-
-
-def _match_braces(lines: list[str], start: int) -> int | None:
-    """从 ``start`` 行的首个 ``{`` 配对到同深度 ``}``，返回结束行下标."""
-    depth = 0
-    started = False
-    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
-    for index in range(start, len(lines)):
-        # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
-        for char in lines[index]:
-            if char == "{":
-                depth += 1
-                started = True
-            elif char == "}":
-                depth -= 1
-                if started and depth == 0:
-                    return index
-    return None
+        total += 1
+    return total

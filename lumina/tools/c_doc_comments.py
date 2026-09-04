@@ -4,21 +4,32 @@
 - 每个翻译单元必须以 ``/*`` 或 ``//`` 文件头 banner 开头；
 - 每个函数*定义*前须有前置文档注释；
 - 头文件每个导出原型前须有前置文档注释。
-
-为何不强制解析 Doxygen 标签：门禁要稳、要快；缺注释即违规，标签完整性交给评审。
 """
 
 from __future__ import annotations
 
 import re
 
-# 允许 CUDA/C++ 限定词前缀；捕获名后必须是 ``(...);`` 原型而非定义。
 _FUNC_PROTO = re.compile(
     r"(?:(?:__\w+|static|inline|extern|constexpr)\s+)*"
     r"[\w\s\*<>,:]+?\s+(\w+)\s*\([^;]*\)\s*;"
 )
-# 控制关键字误匹配时直接丢弃（``if (...);`` 极少见但仍防护）。
 _CONTROL = frozenset({"if", "for", "while", "switch", "do", "return"})
+_NOISE_EXACT = frozenset({"*/", 'extern "C" {', 'extern "C"{'})
+_NOISE_PREFIXES = (
+    "#",
+    "//",
+    "/*",
+    "*",
+    "{",
+    "}",
+    "namespace",
+    "using ",
+    "typedef",
+    "struct",
+    "enum",
+    "class",
+)
 
 
 def has_file_banner(lines: list[str]) -> bool:
@@ -28,10 +39,7 @@ def has_file_banner(lines: list[str]) -> bool:
 
 
 def has_leading_doc_comment(lines: list[str], start_line: int) -> bool:
-    """``start_line``（1-based）紧上方是否为文档注释（允许中间空行）.
-
-    接受 ``//`` 或以上一行以 ``*/`` 结束的块注释；不要求 @brief 关键字。
-    """
+    """``start_line``（1-based）紧上方是否为文档注释（允许中间空行）."""
     index = start_line - 2
     # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     while index >= 0 and not lines[index].strip():
@@ -67,48 +75,38 @@ def undocumented_prototypes(lines: list[str]) -> list[tuple[str, int]]:
 
 
 def _skip_noise(stripped: str) -> bool:
-    """跳过空白、预处理、纯注释行（含 Doxygen ``*`` 续行）.
-
-    若不跳过 ``* O(n) ...``，后续窗口里的 ``{`` 会把 ``O`` 误解析成函数名。
-    """
-    return (
-        not stripped
-        or stripped.startswith("#")
-        or stripped.startswith("//")
-        or stripped.startswith("/*")
-        or stripped == "*/"
-        or stripped.startswith("*")
-        or stripped.startswith("{")
-        or stripped.startswith("}")
-        or stripped in {'extern "C" {', 'extern "C"{'}
-        or stripped.startswith("namespace")
-        or stripped.startswith("using ")
-        or stripped.startswith("typedef")
-        or stripped.startswith("struct")
-        or stripped.startswith("enum")
-        or stripped.startswith("class")
-    )
+    """跳过空白、预处理、纯注释行（含 Doxygen ``*`` 续行）."""
+    if not stripped or stripped in _NOISE_EXACT:
+        return True
+    return any(stripped.startswith(prefix) for prefix in _NOISE_PREFIXES)
 
 
 def _prototype_at(lines: list[str], start: int) -> tuple[str | None, int | None]:
-    """若 ``start`` 起是 ``name(...);`` 原型，返回名字与结束行下标.
-
-    窗口内出现 ``{`` 视为定义而非原型，返回 None（定义由 metrics 侧管）。
-    """
+    """若 ``start`` 起是 ``name(...);`` 原型，返回名字与结束行下标."""
     window: list[str] = []
     # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for index in range(start, min(start + 12, len(lines))):
         window.append(lines[index].rstrip())
         joined = " ".join(part.strip() for part in window)
-        if "{" in joined:
-            return None, None
-        if ";" not in joined:
-            continue
-        match = _FUNC_PROTO.search(joined)
-        if match is None:
-            return None, None
-        name = match.group(1)
-        if name in _CONTROL:
-            return None, None
-        return name, index
+        done, name = _proto_step(joined)
+        if done:
+            return (name, index) if name else (None, None)
     return None, None
+
+
+def _proto_step(joined: str) -> tuple[bool, str | None]:
+    """Return (done, name); done means stop widening the prototype window."""
+    if "{" in joined:
+        return True, None
+    if ";" not in joined:
+        return False, None
+    return True, _parse_proto_window(joined)
+
+
+def _parse_proto_window(joined: str) -> str | None:
+    """Return prototype name from a joined window that already contains ``;``."""
+    match = _FUNC_PROTO.search(joined)
+    if match is None:
+        return None
+    name = match.group(1)
+    return None if name in _CONTROL else name

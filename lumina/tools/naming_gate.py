@@ -61,16 +61,23 @@ def _check_file(path: Path, allow: frozenset[str], allow_aliases: bool) -> list[
     guard_issue = check_include_guard(key, raw)
     if guard_issue:
         out.append(_violation(key, guard_issue, 0, 1))
+    out.extend(_symbol_violations(key, raw))
+    out.extend(_macro_violations(key, raw, allow_aliases))
+    return out
+
+
+def _symbol_violations(file_key: str, lines: list[str]) -> list[dict[str, str]]:
+    """Flag C function symbols that fail professional naming rules."""
+    out: list[dict[str, str]] = []
     seen: set[str] = set()
     # 单遍：只扫函数定义 span，避免把宏/类型当符号。
-    for name, _start, _end in function_spans(raw):
+    for name, _start, _end in function_spans(lines):
         if name in seen:
             continue
         seen.add(name)
-        issue = check_c_symbol(name, key)
+        issue = check_c_symbol(name, file_key)
         if issue:
-            out.append(_violation(f"{key}::{name}", issue, 1, 0))
-    out.extend(_macro_violations(key, raw, allow_aliases))
+            out.append(_violation(f"{file_key}::{name}", issue, 1, 0))
     return out
 
 
@@ -82,17 +89,21 @@ def _macro_violations(file_key: str, lines: list[str], allow_aliases: bool) -> l
         match = _DEFINE.match(line)
         if not match:
             continue
-        name = match.group(1)
-        if name.startswith("LUMA_"):
-            if (not allow_aliases) and "BASELINE" in name:
-                out.append(_violation(f"{file_key}::{name}", "禁止 LUMA_BASELINE_* 兼容别名", 1, 0))
-            continue
-        if name.endswith("_H") or name.endswith("_HPP"):
-            continue  # include guard
-        if name.startswith("_"):
-            continue
-        out.append(_violation(f"{file_key}::{name}", f"宏须 LUMA_ 前缀: {name}", 1, 0))
+        issue = _macro_issue(match.group(1), allow_aliases)
+        if issue:
+            out.append(_violation(f"{file_key}::{match.group(1)}", issue, 1, 0))
     return out
+
+
+def _macro_issue(name: str, allow_aliases: bool) -> str | None:
+    """Return a violation message for one macro name, or None if OK."""
+    if name.startswith("LUMA_"):
+        if (not allow_aliases) and "BASELINE" in name:
+            return "禁止 LUMA_BASELINE_* 兼容别名"
+        return None
+    if name.endswith(("_H", "_HPP")) or name.startswith("_"):
+        return None
+    return f"宏须 LUMA_ 前缀: {name}"
 
 
 def _violation(target: str, issue: str, current: int, limit: int) -> dict[str, str]:
