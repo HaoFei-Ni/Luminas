@@ -1,0 +1,70 @@
+% Authoritative draft. Do not claim lossless until P1--P3 are proved and
+% the research-skill three-level gate is archived.
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+
+\title{Architecture-Agnostic State-Cache Compression:\\
+a Closed Mathematical Framework}
+\author{Luminas}
+\date{}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Working draft for the product method. Numerical losslessness is defined
+by the 2-ulp gate; model- and task-level gates live outside this note.
+Until Propositions~P1--P3 are proved, call the path a candidate.
+\end{abstract}
+
+\section{Scope}
+Input: a backbone-agnostic state cache \(S\) (KV, SSM state, or event
+state). Output: a code \(C\) and a reconstruction \(\widehat{S}=\mathrm{Dec}(\mathrm{Enc}(S))\).
+This note does not prove PPL or task gates.
+
+\section{P0 --- Definition}
+\textit{To be written.} Minimal axioms on \(S\): finite, addressable,
+independent of a particular backbone. Domains of \(\mathrm{Enc}\) and \(\mathrm{Dec}\).
+
+\section{P1 --- Reconstruction}
+\begin{proposition}[P1]
+\textit{To be proved.} An error bound for \(\widehat{S}-S\) on the stated domain.
+\end{proposition}
+\begin{remark}
+The current C ABI (\texttt{luma\_kv\_encode\_f32} / \texttt{decode}) is a
+finite-checked identity. It occupies the hook; it is not a proof of P1.
+\end{remark}
+
+\section{P2 --- Numerical gate}
+\begin{proposition}[P2]
+\textit{To be closed.} P1 implies the 2-ulp gate:
+\(\lvert \widehat{S}_i-S_i\rvert \le 2\cdot 2^{-23}\max(1,\lvert S_i\rvert)\)
+for at least \(99.9\%\) of finite elements, and no NaN/Inf.
+\end{proposition}
+Kernel test: \texttt{lumina/kernel/test/test\_luma\_kv.c}.
+
+\section{P3 --- Downstream equivalence}
+\begin{proposition}[P3]
+\textit{To be proved.} Conditions under which attention, linear scans, or
+spike accumulators treat \(\widehat{S}\) as \(S\).
+\end{proposition}
+This is the architecture-agnostic closure. Do not claim a law until P3 is proved.
+
+\section{P4 --- Complexity}
+\textit{To be written.} Time and \(\lvert C\rvert\) in \(T,H,d\).
+Do not report a compression ratio for the identity implementation.
+
+\section{P5 --- Closure and failure}
+\textit{To be written.} Boundaries: non-finite inputs, overflow, length or
+dynamic-range limits. Align with failed laboratory runs.
+
+\section*{Pointers}
+Implementation: \texttt{lumina/kernel/luma\_kv\_*.c}.
+Verification notes: \texttt{lumina/theory/state-cache/verify/}.
+
+\end{document}
