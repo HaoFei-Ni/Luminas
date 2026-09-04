@@ -7,7 +7,7 @@
 1. 读取 quality-gate.toml（阈值/开关/排除/报告文案）。
 2. 复杂度取自 complexipy JSON（多版本 schema 由 quality_metrics 归一化）；
    行数 / 圈复杂度 / 控制嵌套用 Python AST 原生测量。
-3. 执行校验：文件行数、函数数量、函数行数、认知复杂度、圈复杂度、控制嵌套、递归、行内注释。
+3. 执行校验：文件行数、函数数量、函数行数、认知复杂度、圈复杂度、控制嵌套、递归、行内注释、架构（环/扇出/继承/克隆）。
 4. 生成对齐行业结构的 Markdown 报告：代码健康度概览 + 违规汇总 + 全量明细。
 
 依赖扫描链（工作目录须为 lumina/）：
@@ -22,7 +22,9 @@ from pathlib import Path
 from typing import Any
 
 from tools import quality_metrics
+from tools.arch_gate import architecture_violations
 from tools.ci_quality_report import generate_markdown_report, health_score
+from tools.ha_gate import ha_violations
 from tools.py_function_gate import function_structure_violations
 from tools.py_inline_gate import python_inline_complex_violations
 from tools.quality_metrics import FileMetrics, FunctionMetrics
@@ -58,6 +60,10 @@ def validate_quality(
     violations.extend(function_structure_violations(function_metrics, config))
     # [comment_standard].require_inline_on_complex：Python 循环须贴身 # 注释。
     violations.extend(python_inline_complex_violations(config))
+    # [features].enable_architecture_check：扇出/环/继承/克隆。
+    violations.extend(architecture_violations(config))
+    # [features].enable_ha_check：未检异常/全局状态/空引用。
+    violations.extend(ha_violations(config))
     return not violations, violations
 
 

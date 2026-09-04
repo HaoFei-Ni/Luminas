@@ -13,16 +13,15 @@
 
 from __future__ import annotations
 
-import fnmatch
 import json
 import os
 import subprocess
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from tools.cache_layout import prepare_complexipy_cwd
+from tools.py_metric_types import FileMetrics, FunctionMetrics, as_file_key, excluded
 
 __all__ = [
     "FileMetrics",
@@ -37,51 +36,10 @@ __all__ = [
 ]
 
 
-@dataclass(frozen=True)
-class FunctionMetrics:
-    """Per-function metrics: AST lines, complexities, nesting, self-recursion."""
-
-    file_key: str
-    name: str
-    lines: int
-    complexity: int | None
-    has_recursion: bool = False
-    cyclomatic: int | None = None
-    control_nesting: int | None = None
-
-
-@dataclass(frozen=True)
-class FileMetrics:
-    """Per-file metrics measured from AST (complexipy 8 no longer reports them)."""
-
-    file_key: str
-    path: str
-    lines: int
-    function_count: int
-
-
-def as_file_key(path: str | Path) -> str:
-    """Normalize a path to a forward-slash key relative to lumina/ when possible."""
-    text = str(path).replace("\\", "/")
-    if text.startswith("//?/"):
-        text = text[4:]
-    parts = Path(text).parts
-    # 截到 lumina/ 之后：complexipy 绝对路径须与 scan 相对键对齐，避免认知复杂度漏检。
-    for index, part in enumerate(parts):
-        if part.lower() == "lumina" and index + 1 < len(parts):
-            return Path(*parts[index + 1 :]).as_posix()
-    return Path(text).as_posix()
-
-
 def venv_executable(name: str) -> Path:
     """Return the venv-dir path of an executable (``.exe`` suffix on Windows)."""
     suffix = ".exe" if os.name == "nt" else ""
     return Path(sys.executable).with_name(f"{name}{suffix}")
-
-
-def excluded(file_key: str, patterns: list[str]) -> bool:
-    """Return True when a forward-slash key matches any fnmatch pattern."""
-    return any(fnmatch.fnmatch(file_key, pattern) for pattern in patterns)
 
 
 def complexity_map(raw: list[dict[str, Any]]) -> dict[tuple[str, str], int]:
@@ -141,7 +99,7 @@ def measure_files(
     exclude_patterns: list[str],
 ) -> tuple[list[FileMetrics], list[FunctionMetrics]]:
     """Measure line stats via stdlib AST; complexity is attached separately."""
-    # 延迟导入：避免与 py_file_metrics 形成模块级环。
+    # 延迟导入：类型在 py_metric_types；测量在 py_file_metrics，避免环。
     from tools.py_file_metrics import measure_files as _measure
 
     return _measure(

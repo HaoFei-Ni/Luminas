@@ -25,7 +25,7 @@ __all__ = [
     "measure_c_files",
 ]
 
-_C_SUFFIXES = {".c", ".h", ".cu", ".cuh", ".cpp", ".hpp", ".cc"}
+_C_SUFFIXES = frozenset({".c", ".h", ".cu", ".cuh", ".cpp", ".hpp", ".cc"})
 
 
 @dataclass(frozen=True)

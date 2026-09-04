@@ -8,9 +8,9 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from tools.py_metric_types import FileMetrics, FunctionMetrics, as_file_key, excluded
 from tools.py_recursion import self_recursive_names
 from tools.py_structure_metrics import measure_function
-from tools.quality_metrics import FileMetrics, FunctionMetrics, as_file_key, excluded
 
 
 def measure_files(
@@ -66,6 +66,7 @@ def _measure_one(
     raw_lines = source.splitlines()
     file_key = as_file_key(file_path)
     recursive = self_recursive_names(tree)
+    # 单遍 walk：须收齐嵌套 def，避免函数计数低估。
     fn_nodes = [node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))]
     file_metrics = FileMetrics(
         file_key=file_key,
@@ -75,7 +76,7 @@ def _measure_one(
     )
     functions = [
         _function_metric(node, file_key, raw_lines, recursive, count_blank_lines, count_comment_lines)
-        for node in fn_nodes
+        for node in fn_nodes  # 须挂结构指标，避免后续门禁读空 cyclomatic。
     ]
     return file_metrics, functions
 

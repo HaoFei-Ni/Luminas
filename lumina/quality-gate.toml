@@ -23,29 +23,34 @@ complexipy_vendor = ".complexipy_cache"
 
 # ------------------------------ Hypothesis profile（无法写入 pyproject） ------------------------------
 # 官方插件不读 hypothesis_* ini（hypothesis#2434）；conftest 只加载本节。
+# 切换：HYPOTHESIS_PROFILE=dev|ci|ha 或 --hypothesis-profile。
 [hypothesis]
 default_profile = "dev"
 
 [hypothesis.profiles.dev]
-# max_examples：单属性最大样本数（覆盖度↑耗时↑）；本地常用 500~1000，深度回归可至 2000
-max_examples = 1500
-# deadline_ms：单用例超时毫秒；dev 可 1000~5000
-deadline_ms = 2500
-# print_blob：失败时打印完整反例，便于本地定位
-print_blob = true
-# persist_examples：持久化失败例优先复现；稳定后可关，避免历史污染
-persist_examples = true
-
-[hypothesis.profiles.ci]
-# CI 速度优先：样本宜 200~500；夜间回归可提至 1000
-max_examples = 300
-# CI 超时宜 ≤3000，避免堵流水线
+max_examples = 1000                 # 日常开发：平衡速度与覆盖；调试阶段可适当降低
 deadline_ms = 3000
 print_blob = true
-# derandomize：固定种子，CI 必须可复现
-derandomize = true
-# CI 不落库，保持无状态
+persist_examples = true
+derandomize = true                  # 5个9强制：日常开发也固定种子，保证问题可复现
+
+[hypothesis.profiles.ci]
+max_examples = 500                  # CI流水线：兼顾速度与基础覆盖；核心流水线控制在分钟级
+deadline_ms = 3000
+print_blob = true
+derandomize = true                  # 5个9强制：CI必须可复现
 persist_examples = false
+
+# 5个9高可用认证 profile（发布前/夜间回归强制执行）
+[hypothesis.profiles.ha]
+max_examples = 5000                 # 5个9强制：极端样本量，穷尽边界组合
+deadline_ms = 60000                 # 长超时：允许完整遍历极端场景；仅夜间/发布前执行
+derandomize = true                  # 强制：所有故障必须可复现、可回溯
+print_blob = true                   # 强制：完整输出失败用例，支持快速定位修复
+stateful_step_count = 200           # 5个9专项：有状态测试步数，验证长时间运行下的状态一致性
+max_examples_per_run = 1000         # 分批执行提示（非 Hypothesis 原生键；编排层可读）
+suppress_health_check = false       # 强制开启健康检查，确保测试本身有效
+persist_examples = true             # 与 derandomize 并存时：Hypothesis 禁 database，以固定种子为复现源
 
 # ------------------------------ Python 扫描范围 ------------------------------
 # 相对 lumina/；wrapper/ 为 C++/pybind，不进 Python 门禁
@@ -56,20 +61,27 @@ include_paths = [
     "theory",
 ]
 
-# ------------------------------ Python 阈值（最优工业档；存量须拆分达标，禁止放宽） ------------------------------
+# ------------------------------ Python 阈值（5个9强制；存量须达标，禁止放宽） ------------------------------
 [thresholds]
+# 基础质量
 max_cognitive_complexity = 8
-max_file_physical_lines = 300
-max_function_count_per_file = 8
-max_function_physical_lines = 50
 max_cyclomatic_complexity = 8
 max_control_nesting_depth = 3
+max_function_physical_lines = 50
+max_function_count_per_file = 8
+max_file_physical_lines = 300
 
-max_code_duplication_ratio = 4        # 当前：专业生产级标准；可接受标准：≤10%（存量兼容）；最优标准：≤3%（顶级工业级）；重复率越高复用度越差，冗余代码越多维护成本指数级上升
-max_cyclic_dependencies = 0           # 当前：架构强制红线；可接受标准：必须为0；最优标准：必须为0；循环依赖会导致模块耦合坏死、无法独立复用，属于架构设计致命缺陷
-max_module_fan_out = 10               # 当前：中等耦合标准；可接受标准：≤15；最优标准：≤8（低耦合高内聚）；扇出越高模块依赖越杂、复用难度越大，核心公共模块扇出应控制更低
-max_inheritance_depth = 4             # 当前：合理抽象层级；可接受标准：≤5；最优标准：≤3（扁平抽象架构）；继承过深会导致逻辑碎片化、理解成本飙升，过浅则说明抽象抽取不足
-max_duplicate_code_blocks = 1         # 当前：存量宽松标准；可接受标准：≤5；最优标准：0（无重复逻辑块）；重复代码块是复用缺失的直接体现，核心逻辑应唯一实现、多处调用
+# 复用与架构
+max_code_duplication_ratio = 3
+max_cyclic_dependencies = 0
+max_module_fan_out = 8
+max_inheritance_depth = 4
+max_duplicate_code_blocks = 0
+
+# 高可用专项
+max_unchecked_exception_paths = 0
+max_global_state_variables = 2
+max_none_reference_risk = 0
 
 [line_counting]
 count_blank_lines = false
@@ -85,13 +97,15 @@ enable_cognitive_complexity_check = true
 enable_cyclomatic_complexity_check = true
 enable_control_nesting_check = true
 enable_recursion_check = true
+enable_architecture_check = true
+enable_ha_check = true
 
 # ------------------------------ 报告 ------------------------------
 [report]
 json_report_path = "complexipy-report.json"
 markdown_report_path = "complexipy-report.md"
 title = "代码复杂度质量报告"
-description = "校验维度：认知/圈复杂度、控制嵌套、文件/函数行数、单文件函数数、自递归"
+description = "校验维度：认知/圈复杂度、控制嵌套、文件/函数行数、自递归、架构、高可用（异常/全局态/空引用）"
 show_full_detail = true
 violation_headers = ["检查对象", "问题类型", "当前值", "阈值上限"]
 function_headers = ["函数名称", "物理行数", "认知复杂度"]

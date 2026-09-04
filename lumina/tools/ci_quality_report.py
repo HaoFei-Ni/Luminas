@@ -25,6 +25,14 @@ _PENALTY: dict[str, int] = {
     "控制嵌套超限": 10,
     "函数含自递归（默认禁止）": 12,
     "Python复杂语句缺少行内注释": 8,
+    "循环依赖超限": 15,
+    "模块扇出超限": 10,
+    "继承深度超限": 10,
+    "重复代码块超限": 10,
+    "代码重复率超限": 10,
+    "未检异常路径超限": 15,
+    "全局状态变量超限": 10,
+    "空引用风险超限": 15,
 }
 
 _GRADE_BANDS: tuple[tuple[int, str], ...] = (
@@ -127,6 +135,14 @@ def _threshold_rows(thresholds: dict[str, Any]) -> list[str]:
         f"- 单文件物理行数 ≤ {thresholds['max_file_physical_lines']}",
         f"- 单文件函数数量 ≤ {thresholds['max_function_count_per_file']}",
         f"- 单函数物理行数 ≤ {thresholds['max_function_physical_lines']}",
+        f"- 循环依赖 ≤ {thresholds.get('max_cyclic_dependencies', '-')}",
+        f"- 模块扇出 ≤ {thresholds.get('max_module_fan_out', '-')}",
+        f"- 继承深度 ≤ {thresholds.get('max_inheritance_depth', '-')}",
+        f"- 重复代码块 ≤ {thresholds.get('max_duplicate_code_blocks', '-')}",
+        f"- 代码重复率(%) ≤ {thresholds.get('max_code_duplication_ratio', '-')}",
+        f"- 未检异常路径 ≤ {thresholds.get('max_unchecked_exception_paths', '-')}",
+        f"- 全局状态变量/文件 ≤ {thresholds.get('max_global_state_variables', '-')}",
+        f"- 空引用风险 ≤ {thresholds.get('max_none_reference_risk', '-')}",
         "",
     ]
 

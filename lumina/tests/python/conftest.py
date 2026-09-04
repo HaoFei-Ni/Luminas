@@ -21,6 +21,7 @@ from typing import Any
 import pytest
 
 from tools.cache_layout import load_cache_config, load_hypothesis_config, lumina_root, tool_cache_dir
+from tools.hypothesis_profiles import profile_settings_kwargs
 
 _LUMINA = lumina_root()
 _CACHE_CFG = load_cache_config(_LUMINA / "quality-gate.toml")
@@ -51,16 +52,13 @@ def _profile_kwargs(name: str) -> dict[str, Any]:
     if not isinstance(profiles, dict) or name not in profiles:
         raise KeyError(f"quality-gate.toml missing [hypothesis.profiles.{name}]")
     raw = dict(profiles[name])
-    out: dict[str, Any] = {
-        "max_examples": int(raw["max_examples"]),
-        "deadline": int(raw["deadline_ms"]),
-        "print_blob": bool(raw.get("print_blob", True)),
-    }
-    if raw.get("derandomize"):
-        out["derandomize"] = True
-    if raw.get("persist_examples") and _HYP_DB is not None:
-        out["database"] = _HYP_DB(_HYP_HOME / "examples")
-    return out
+
+    def _db() -> Any:
+        assert _HYP_DB is not None
+        return _HYP_DB(_HYP_HOME / "examples")
+
+    factory = _db if _HYP_DB is not None else None
+    return profile_settings_kwargs(raw, database_factory=factory)
 
 
 def _install_hypothesis_profiles() -> None:
