@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 import ast
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+from tools.checks.architecture.inherit_parse import class_bases_map, resolved_parent_depth
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def max_inheritance_depth(files: list[tuple[str, Path]]) -> tuple[int, str]:
@@ -27,15 +32,7 @@ def _collect_bases(files: list[tuple[str, Path]]) -> dict[str, list[str]]:
 
 def _bases_in_file(file_key: str, path: Path) -> dict[str, list[str]]:
     """Collect ClassDef base names from one source file."""
-    mod = ".".join(Path(file_key).with_suffix("").parts)
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    out: dict[str, list[str]] = {}
-    # 单遍顶层：只收 ClassDef，避免嵌套类抬高假深度。
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef):
-            # 单遍 bases：须扁平化 Name/Attribute，避免动态基类炸解析。
-            out[f"{mod}.{node.name}"] = [_base_name(base) for base in node.bases]
-    return out
+    return class_bases_map(file_key, path, _base_name)
 
 
 def _base_name(node: ast.AST) -> str:
@@ -102,11 +99,8 @@ def _ready_depth(
     resolved: list[int] = []
     # 单遍父类：任一未入 memo 则整类推迟，避免环上读脏。
     for parent in parents:
-        key = _resolve_parent(parent, name, bases)
-        if key is None:
-            resolved.append(0)
-            continue
-        if key not in memo:
+        depth = resolved_parent_depth(parent, name, bases, memo, _resolve_parent)
+        if depth is None:
             return None
-        resolved.append(memo[key])
+        resolved.append(depth)
     return 1 + max(resolved, default=0)

@@ -53,7 +53,9 @@ include_paths = [
 ]
 
 [thresholds]
-max_cognitive_complexity = 8
+# 认知复杂度档位：L1=≤5(Simple) · L2=≤10 · L3=≤15 · L4=≤20 · L5=≤25
+cognitive_complexity_level = "L1"
+max_cognitive_complexity = 5
 max_cyclomatic_complexity = 8
 max_control_nesting_depth = 3
 max_function_physical_lines = 50
@@ -132,10 +134,73 @@ numeric_contract_markers = [
 
 [naming_standard]
 enable = true
+# L5（文件命名质量工业最高档）= 文件名规则 ⊂ 符号 shape ⊂ 宏 LUMA_* ⊂ include guard
+# level=L5 时四开关必须为 true，且禁止 baseline 宏别名。
+level = "L5"
+require_filename_rules = true
+require_symbol_rules = true
+require_macro_rules = true
+require_include_guard = true
 allow_baseline_macro_aliases = false
 file_allowlist = []
 include_paths = ["algorithm", "kernel", "wrapper"]
 file_patterns = ["**/tests/**", "**/.cache/**"]
+
+# ------------------------------ 目录结构质量 L5 ------------------------------
+# 物理三层（ARC-101）+ 内容平面（ARC-001 §4.1）+ 文档域 + ASCII snake_case。
+# level=L5 时下列五开关必须为 true；禁止局部降级。
+[layout_standard]
+enable = true
+level = "L5"
+require_product_layers = true
+require_content_planes = true
+require_docs_domains = true
+require_ascii_dir_names = true
+forbid_banned_roots = true
+product_layers = ["algorithm", "kernel", "wrapper"]
+content_planes = ["tools", "tests", "docs", "theory", "research", "experiments", "refs"]
+docs_domains = ["docs/arc", "docs/eng", "docs/res", "docs/pm"]
+banned_roots = ["common", "include", "src", "lib"]
+ascii_scan_roots = ["algorithm", "kernel", "wrapper", "docs"]
+ascii_ignore_dir_names = [".cache", ".venv", "__pycache__", "build"]
+
+# ------------------------------ 文档质量 L5 ------------------------------
+# 架构设计 / 技术（工程）/ 实验研究；写作规则见 docs/README.md。
+# L5 = 元信息五字段 ⊂ 状态用语 ⊂ 权威技能对齐 ⊂ H1 编号 ⊂ 编号章节。
+# level=L5 时下列五开关必须为 true；禁止局部降级。
+[document_standard]
+enable = true
+level = "L5"
+require_meta_table = true
+require_status_vocab = true
+require_skill_alignment = true
+require_h1_doc_id = true
+require_numbered_section = true
+status_vocab = ["生效", "草案", "计划"]
+
+[document_standard.architecture]
+# 架构设计文档
+level = "L5"
+include_paths = ["docs/arc"]
+file_glob = "LUM-ARC-*.md"
+required_skill = "lumina-arc-skill"
+doc_id_prefix = "LUM-ARC-"
+
+[document_standard.technical]
+# 技术文档（工程域 LUM-ENG-*）
+level = "L5"
+include_paths = ["docs/eng"]
+file_glob = "LUM-ENG-*.md"
+required_skill = "lumina-eng-skill"
+doc_id_prefix = "LUM-ENG-"
+
+[document_standard.research]
+# 实验研究文档
+level = "L5"
+include_paths = ["docs/res"]
+file_glob = "LUM-RES-*.md"
+required_skill = "lumina-res-skill"
+doc_id_prefix = "LUM-RES-"
 
 # ------------------------------ 性能 L4 ------------------------------
 # 工作负载必须命中产品 Binding（或文档化的核入口），禁止仅以 list-saxpy 顶替。

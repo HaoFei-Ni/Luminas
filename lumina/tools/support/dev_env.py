@@ -6,6 +6,8 @@ import os
 import shutil
 from pathlib import Path
 
+from tools.support.cuda_env import find_cuda_bin
+
 _VS_CMAKE_SUFFIX = Path("Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe")
 _VS_NINJA_SUFFIX = Path("Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe")
 
@@ -15,15 +17,6 @@ _VS_ROOT_CANDIDATES = (
     Path(r"C:\Program Files\Microsoft Visual Studio\2022\BuildTools"),
     Path(r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"),
 )
-
-
-def _path_key() -> str:
-    """Return the real env key for PATH (Windows may expose ``Path``)."""
-    # 必须保留原大小写：Windows 环境块对 Path/PATH 大小写敏感写入。
-    for key in os.environ:
-        if key.lower() == "path":
-            return key
-    return "PATH"
 
 
 def _first_existing(suffix: Path) -> Path | None:
@@ -36,71 +29,71 @@ def _first_existing(suffix: Path) -> Path | None:
     return None
 
 
-def find_cmake() -> Path:
-    """Return cmake.exe path; prefer LUMINA_CMAKE, then PATH, then VS BuildTools."""
-    forced = os.environ.get("LUMINA_CMAKE")
-    if forced:
-        path = Path(forced)
-        if path.is_file():
-            return path
-    which = shutil.which("cmake")
+def _resolve_tool(env_key: str, which_name: str, vs_suffix: Path, missing: str) -> Path:
+    """Resolve a build tool from env, PATH, then VS BuildTools."""
+    forced = os.environ.get(env_key)
+    if forced and Path(forced).is_file():
+        return Path(forced)
+    which = shutil.which(which_name)
     if which:
         return Path(which)
-    found = _first_existing(_VS_CMAKE_SUFFIX)
+    found = _first_existing(vs_suffix)
     if found is not None:
         return found
-    raise FileNotFoundError("cmake not found. Run: . .\\lumina\\scripts\\dev-env.ps1 -PersistUserPath")
+    raise FileNotFoundError(missing)
+
+
+def find_cmake() -> Path:
+    """Return cmake.exe path; prefer LUMINA_CMAKE, then PATH, then VS BuildTools."""
+    return _resolve_tool(
+        "LUMINA_CMAKE",
+        "cmake",
+        _VS_CMAKE_SUFFIX,
+        "cmake not found. Run: . .\\lumina\\scripts\\dev-env.ps1 -PersistUserPath",
+    )
 
 
 def find_ninja() -> Path:
     """Return ninja.exe path; prefer LUMINA_NINJA, then PATH, then VS BuildTools."""
-    forced = os.environ.get("LUMINA_NINJA")
-    if forced:
-        path = Path(forced)
-        if path.is_file():
-            return path
-    which = shutil.which("ninja")
-    if which:
-        return Path(which)
-    found = _first_existing(_VS_NINJA_SUFFIX)
-    if found is not None:
-        return found
-    raise FileNotFoundError("ninja not found. Run: . .\\lumina\\scripts\\dev-env.ps1 -PersistUserPath")
-
-
-def find_cuda_bin() -> Path | None:
-    """Return CUDA ``bin`` directory containing ``nvcc`` when present."""
-    which = shutil.which("nvcc")
-    if which:
-        return Path(which).resolve().parent
-    root = Path(r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA")
-    if not root.is_dir():
-        return None
-    versions = sorted((p for p in root.iterdir() if p.is_dir()), reverse=True)
-    # 必须扫版本目录：Toolkit 多版本并存时选最新可用 nvcc。
-    for ver in versions:
-        nvcc = ver / "bin" / "nvcc.exe"
-        if nvcc.is_file():
-            return nvcc.parent
-    return None
+    return _resolve_tool(
+        "LUMINA_NINJA",
+        "ninja",
+        _VS_NINJA_SUFFIX,
+        "ninja not found. Run: . .\\lumina\\scripts\\dev-env.ps1 -PersistUserPath",
+    )
 
 
 def prepend_tool_bins_to_path() -> None:
     """Ensure cmake/ninja/(optional) CUDA bins are on PATH for child processes."""
     bins = _resolved_bins()
-    cuda_bin = find_cuda_bin()
-    if cuda_bin is not None:
-        bins.append(str(cuda_bin))
     if not bins:
         return
     key = _path_key()
-    parts = [p for p in os.environ.get(key, "").split(";") if p]
-    _prepend_unique(parts, bins)
-    os.environ[key] = ";".join(parts)
+    parts = list(filter(None, os.environ.get(key, "").split(";")))
+    os.environ[key] = ";".join(_prepended(parts, bins))
+
+
+def _prepended(parts: list[str], bins: list[str]) -> list[str]:
+    """Return ``parts`` with ``bins`` uniquely prepended."""
+    out = list(parts)
+    # 必须前置：避免 PATH 里残缺同名 cmake 抢先。
+    for bin_dir in reversed(bins):
+        if bin_dir not in out:
+            out.insert(0, bin_dir)
+    return out
+
+
+def _path_key() -> str:
+    """Return the real env key for PATH (Windows may expose ``Path``)."""
+    # 必须保留原大小写：Windows 环境块对 Path/PATH 大小写敏感写入。
+    for key in os.environ:
+        if key.lower() == "path":
+            return key
+    return "PATH"
 
 
 def _resolved_bins() -> list[str]:
-    """Collect existing cmake/ninja parent directories."""
+    """Collect cmake/ninja/CUDA bin directories when present."""
     bins: list[str] = []
     # 必须容错：缺一项仍要尽量前置另一项。
     for finder in (find_cmake, find_ninja):
@@ -108,12 +101,7 @@ def _resolved_bins() -> list[str]:
             bins.append(str(finder().parent))
         except FileNotFoundError:
             continue
+    cuda_bin = find_cuda_bin()
+    if cuda_bin is not None:
+        bins.append(str(cuda_bin))
     return bins
-
-
-def _prepend_unique(parts: list[str], bins: list[str]) -> None:
-    """Prepend bins to parts without duplicates (mutates parts)."""
-    # 必须前置：避免 PATH 里残缺同名 cmake 抢先。
-    for bin_dir in reversed(bins):
-        if bin_dir not in parts:
-            parts.insert(0, bin_dir)

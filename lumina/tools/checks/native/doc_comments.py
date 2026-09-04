@@ -8,13 +8,8 @@
 
 from __future__ import annotations
 
-import re
+from tools.checks.native.doc_comments_proto import prototype_at
 
-_FUNC_PROTO = re.compile(
-    r"(?:(?:__\w+|static|inline|extern|constexpr)\s+)*"
-    r"[\w\s\*<>,:]+?\s+(\w+)\s*\([^;]*\)\s*;"
-)
-_CONTROL = frozenset({"if", "for", "while", "switch", "do", "return"})
 _NOISE_EXACT = frozenset({"*/", 'extern "C" {', 'extern "C"{'})
 _NOISE_PREFIXES = (
     "#",
@@ -41,7 +36,7 @@ def has_file_banner(lines: list[str]) -> bool:
 def has_leading_doc_comment(lines: list[str], start_line: int) -> bool:
     """``start_line``（1-based）紧上方是否为文档注释（允许中间空行）."""
     index = start_line - 2
-    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
+    # 必须向上跳过空行：文档与原型之间允许空白分隔。
     while index >= 0 and not lines[index].strip():
         index -= 1
     if index < 0:
@@ -57,21 +52,28 @@ def undocumented_prototypes(lines: list[str]) -> list[tuple[str, int]]:
     """返回头文件中缺少前置文档的原型 ``(name, line)``."""
     missing: list[tuple[str, int]] = []
     index = 0
-    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
+    # 必须单遍扫描：每段原型只判一次，结束行后跳过后续续行。
     while index < len(lines):
-        stripped = lines[index].strip()
-        if _skip_noise(stripped):
-            index += 1
-            continue
-        name, end = _prototype_at(lines, index)
-        if name is None or end is None:
-            index += 1
-            continue
-        if not has_leading_doc_comment(lines, index + 1):
-            missing.append((name, index + 1))
-        # 跳到原型结束行之后，避免同一声明被窗口重复命中。
-        index = end + 1
+        hit, index = _prototype_doc_step(lines, index)
+        if hit is not None:
+            missing.append(hit)
     return missing
+
+
+def _prototype_doc_step(
+    lines: list[str],
+    index: int,
+) -> tuple[tuple[str, int] | None, int]:
+    """Return ``((name, line), next_index)`` or ``(None, next_index)``."""
+    stripped = lines[index].strip()
+    if _skip_noise(stripped):
+        return None, index + 1
+    name, end = prototype_at(lines, index)
+    if name is None or end is None:
+        return None, index + 1
+    if has_leading_doc_comment(lines, index + 1):
+        return None, end + 1
+    return (name, index + 1), end + 1
 
 
 def _skip_noise(stripped: str) -> bool:
@@ -79,34 +81,3 @@ def _skip_noise(stripped: str) -> bool:
     if not stripped or stripped in _NOISE_EXACT:
         return True
     return any(stripped.startswith(prefix) for prefix in _NOISE_PREFIXES)
-
-
-def _prototype_at(lines: list[str], start: int) -> tuple[str | None, int | None]:
-    """若 ``start`` 起是 ``name(...);`` 原型，返回名字与结束行下标."""
-    window: list[str] = []
-    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
-    for index in range(start, min(start + 12, len(lines))):
-        window.append(lines[index].rstrip())
-        joined = " ".join(part.strip() for part in window)
-        done, name = _proto_step(joined)
-        if done:
-            return (name, index) if name else (None, None)
-    return None, None
-
-
-def _proto_step(joined: str) -> tuple[bool, str | None]:
-    """Return (done, name); done means stop widening the prototype window."""
-    if "{" in joined:
-        return True, None
-    if ";" not in joined:
-        return False, None
-    return True, _parse_proto_window(joined)
-
-
-def _parse_proto_window(joined: str) -> str | None:
-    """Return prototype name from a joined window that already contains ``;``."""
-    match = _FUNC_PROTO.search(joined)
-    if match is None:
-        return None
-    name = match.group(1)
-    return None if name in _CONTROL else name

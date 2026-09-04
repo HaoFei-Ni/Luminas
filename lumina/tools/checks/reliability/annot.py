@@ -26,23 +26,35 @@ def annotation_optional(node: ast.AST) -> bool:
     return False
 
 
+def _optional_ann_name(stmt: ast.AST) -> str | None:
+    """Return AnnAssign target name when annotation is Optional-like."""
+    if not isinstance(stmt, ast.AnnAssign) or not isinstance(stmt.target, ast.Name):
+        return None
+    if stmt.annotation is None or not annotation_optional(stmt.annotation):
+        return None
+    return stmt.target.id
+
+
 def _ann_assign_optionals(node: ast.AST) -> set[str]:
     """Collect AnnAssign targets whose annotation is Optional-like."""
     names: set[str] = set()
     # 单遍体：局部 Optional 同样须防护后再解引用。
     for stmt in ast.walk(node):
-        if not isinstance(stmt, ast.AnnAssign) or not isinstance(stmt.target, ast.Name):
-            continue
-        if stmt.annotation is not None and annotation_optional(stmt.annotation):
-            names.add(stmt.target.id)
+        name = _optional_ann_name(stmt)
+        if name is not None:
+            names.add(name)
     return names
+
+
+def _is_optional_subscript(node: ast.AST) -> bool:
+    return isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name) and node.value.id == "Optional"
 
 
 def _node_is_optional(cur: ast.AST, stack: list[ast.AST]) -> bool:
     """Push children onto stack; return True when ``cur`` itself denotes None/Optional."""
     if isinstance(cur, ast.Constant) and cur.value is None:
         return True
-    if isinstance(cur, ast.Subscript) and isinstance(cur.value, ast.Name) and cur.value.id == "Optional":
+    if _is_optional_subscript(cur):
         return True
     if isinstance(cur, ast.BinOp) and isinstance(cur.op, ast.BitOr):
         stack.extend((cur.left, cur.right))

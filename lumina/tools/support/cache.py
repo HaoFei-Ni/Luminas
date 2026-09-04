@@ -90,22 +90,24 @@ def prepare_complexipy_cwd(
 
 def _reclaim_stray(stray: Path, dest: Path) -> None:
     """Move useful files from a top-level vendor dir into ``dest``, then remove it."""
-    if not stray.exists() or _same_path(stray, dest):
+    try:
+        same = stray.resolve() == dest.resolve()
+    except OSError:
+        same = False
+    if not stray.exists() or same:
         return
     if not stray.is_dir():
         stray.unlink(missing_ok=True)
         return
     # 单遍迁移：目标已存在则保留 dest，避免覆盖较新的增量缓存。
     for child in stray.iterdir():
-        target = dest / child.name
-        if not target.exists():
-            shutil.move(str(child), str(target))
+        _move_stray_child(child, dest)
     shutil.rmtree(stray, ignore_errors=True)
 
 
-def _same_path(left: Path, right: Path) -> bool:
-    """True when both paths resolve to the same filesystem location."""
-    try:
-        return left.resolve() == right.resolve()
-    except OSError:
-        return False
+def _move_stray_child(child: Path, dest: Path) -> None:
+    """Move one stray cache entry into ``dest`` when the target name is unused."""
+    target = dest / child.name
+    if target.exists():
+        return
+    shutil.move(str(child), str(target))

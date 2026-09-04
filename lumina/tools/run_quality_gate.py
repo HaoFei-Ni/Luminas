@@ -5,8 +5,10 @@ Always runs with cwd = ``lumina/`` so report paths stay stable:
 1. ``ruff check`` (includes pydocstyle D);
 2. complexipy → ``tools.reporting.python_gate`` (Python structure + inline why);
 3. ``tools.checks.native.gate`` (C/CUDA structure + inline why);
-4. ``tools.checks.naming.gate`` (LUM-ENG-101 naming);
-5. ``tools.checks.performance.gate`` (L4: 2+5 timed runs, ≤2% regression).
+4. ``tools.checks.naming.gate`` (file naming quality L5);
+5. ``tools.checks.performance.gate`` (L4: 2+5 timed runs, ≤2% regression);
+6. ``tools.checks.docs.gate`` (document quality L5: arc / eng / res);
+7. ``tools.checks.layout.gate`` (directory structure quality L5).
 
 Commit-time cognitive complexity uses ``tools.complexity_precommit``; do not
 fold this full suite into a hook.
@@ -55,25 +57,27 @@ def _run_ruff() -> int:
     return 0
 
 
+def _stage_status(code: int) -> str:
+    """Map a subprocess exit code to a Markdown table status cell."""
+    return "PASS" if code == 0 else f"FAIL ({code})"
+
+
 def _print_summary(stages: list[tuple[str, int]]) -> int:
     """Print a stage table and return 0 only when every stage passed."""
     print("")
     print("| Stage | Status |")
     print("|---|---|")
-    failed = 0
+    failed = int(any(code != 0 for _, code in stages))
     # 必须汇总各阶段：CI 需要一眼看到失败点，避免只看末尾 exit code。
     for name, code in stages:
-        status = "PASS" if code == 0 else f"FAIL ({code})"
-        if code != 0:
-            failed = 1
-        print(f"| {name} | {status} |")
+        print(f"| {name} | {_stage_status(code)} |")
     verdict = "PASS" if failed == 0 else "FAIL"
     print(f"[GATE] overall={verdict}")
     return failed
 
 
 def main() -> int:
-    """Ruff → Python → C → naming → L4 perf; fail closed on any gate."""
+    """Ruff → Python → C → naming L5 → L4 perf → docs L5 → layout L5."""
     os.chdir(_LUMINA_DIR)
     config = _load_config()
     targets = list(config["scan"]["include_paths"])
@@ -85,8 +89,10 @@ def main() -> int:
         ("ruff", ruff_code),
         ("python-structure", _run_module("tools.reporting.python_gate")),
         ("c-structure", _run_module("tools.checks.native.gate")),
-        ("naming", _run_module("tools.checks.naming.gate")),
+        ("naming-l5", _run_module("tools.checks.naming.gate")),
         ("perf-l4", _run_module("tools.checks.performance.gate")),
+        ("docs-l5", _run_module("tools.checks.docs.gate")),
+        ("layout-l5", _run_module("tools.checks.layout.gate")),
     ]
     return _print_summary(stages)
 

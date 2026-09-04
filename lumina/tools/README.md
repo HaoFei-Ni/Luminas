@@ -13,6 +13,8 @@ Industry-style layout: **checks** (analyzers), **reporting** (verdicts), **suppo
 | `checks/performance` | L4 timing protocol and regression gate |
 | `checks/python` | Python AST size / structure / recursion |
 | `checks/comments` | Why-comment policy for complex statements |
+| `checks/docs` | Formal Markdown L5 (arc / eng / res) |
+| `checks/layout` | Directory structure L5 (ARC-101 layers + planes) |
 | `reporting` | Python structure gate + bilingual Markdown/JSON |
 | `support` | Cache layout, Hypothesis profiles, metrics facade |
 
@@ -25,6 +27,8 @@ uv run python -m tools.reporting.python_gate
 uv run python -m tools.checks.native.gate
 uv run python -m tools.checks.naming.gate
 uv run python -m tools.checks.performance.gate
+uv run python -m tools.checks.docs.gate
+uv run python -m tools.checks.layout.gate
 ```
 
 Authority: `../quality-gate.toml`. Artifacts: `../tests/reports/`.

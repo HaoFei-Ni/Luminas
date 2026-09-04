@@ -64,6 +64,18 @@ def _file_violations(
     tree = ast.parse(source)
     raw = source.splitlines()
     issue = "Python复杂语句缺少why行内注释" if require_why else "Python复杂语句缺少行内注释"
+    return _function_inline_records(tree, file_key, raw, skip_names, issue, require_why)
+
+
+def _function_inline_records(
+    tree: ast.AST,
+    file_key: str,
+    raw: list[str],
+    skip_names: set[str],
+    issue: str,
+    require_why: bool,
+) -> list[dict[str, str]]:
+    """Collect inline-comment violations from function nodes in one AST."""
     out: list[dict[str, str]] = []
     # 单遍：只处理函数节点，避免类体/模块级误报。
     for node in ast.walk(tree):

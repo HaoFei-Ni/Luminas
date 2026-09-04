@@ -23,13 +23,22 @@ def profile_settings_kwargs(
         "deadline": int(raw["deadline_ms"]),
         "print_blob": bool(raw.get("print_blob", True)),
     }
-    derandomize = bool(raw.get("derandomize"))
-    if derandomize:
-        out["derandomize"] = True
-    elif raw.get("persist_examples") and database_factory is not None:
-        out["database"] = database_factory()
+    _apply_reproducibility(out, raw, database_factory)
     if "stateful_step_count" in raw:
         out["stateful_step_count"] = int(raw["stateful_step_count"])
     if "suppress_health_check" in raw and not raw["suppress_health_check"]:
         out["suppress_health_check"] = ()
     return out
+
+
+def _apply_reproducibility(
+    out: dict[str, Any],
+    raw: dict[str, Any],
+    database_factory: Callable[[], Any] | None,
+) -> None:
+    """Attach derandomize or example database kwargs when the profile enables them."""
+    if bool(raw.get("derandomize")):
+        out["derandomize"] = True
+        return
+    if raw.get("persist_examples") and database_factory is not None:
+        out["database"] = database_factory()

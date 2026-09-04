@@ -17,27 +17,23 @@
 from __future__ import annotations
 
 import sys
-import tomllib
 from pathlib import Path
 from typing import Any
 
 from tools.checks.architecture.gate import architecture_violations
+from tools.checks.python.cognitive_level import cognitive_level_violations
 from tools.checks.python.function_gate import function_structure_violations
 from tools.checks.python.inline_gate import python_inline_complex_violations
 from tools.checks.reliability.gate import ha_violations
 from tools.reporting.report import generate_markdown_report, health_score
-from tools.support import metrics as quality_metrics
-from tools.support.metrics import FileMetrics, FunctionMetrics
-
-
-def load_config(config_path: str = "quality-gate.toml") -> dict[str, Any]:
-    """Load and parse the quality-gate TOML configuration file."""
-    config_file = Path(config_path)
-    if not config_file.exists():
-        print(f"[ERROR] 配置文件不存在: {config_path}")
-        sys.exit(1)
-    with config_file.open("rb") as handle:
-        return dict(tomllib.load(handle))
+from tools.support.gate_config import load_quality_gate as load_config
+from tools.support.metrics import (
+    FileMetrics,
+    FunctionMetrics,
+    complexity_map,
+    load_report,
+    measure_files,
+)
 
 
 def build_violation(target: str, issue: str, current: int, limit: int) -> dict[str, str]:
@@ -56,7 +52,8 @@ def validate_quality(
     config: dict[str, Any],
 ) -> tuple[bool, list[dict[str, str]]]:
     """Run every enabled quality check over the measured metrics."""
-    violations = _file_level_violations(file_metrics, config)
+    violations = cognitive_level_violations(config)
+    violations.extend(_file_level_violations(file_metrics, config))
     violations.extend(function_structure_violations(function_metrics, config))
     # [comment_standard].require_inline_on_complex：Python 循环须贴身 # 注释。
     violations.extend(python_inline_complex_violations(config))
@@ -103,10 +100,9 @@ def main() -> None:
     """Orchestrate config load, metric measurement and gate validation."""
     config = load_config()
     report_path = Path(config["report"]["json_report_path"])
-    raw_report = quality_metrics.load_report(report_path)
-    complexities = quality_metrics.complexity_map(raw_report)
+    complexities = complexity_map(load_report(report_path))
     line_cfg = config["line_counting"]
-    file_metrics, function_metrics = quality_metrics.measure_files(
+    file_metrics, function_metrics = measure_files(
         config["scan"]["include_paths"],
         count_blank_lines=line_cfg["count_blank_lines"],
         count_comment_lines=line_cfg["count_comment_lines"],

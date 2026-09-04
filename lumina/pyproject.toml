@@ -341,7 +341,7 @@ paths = [
     "tools",
     "tests",
 ]
-max-complexity-allowed = 15            # 认知复杂度工具默认阈值；最终生效以 quality-gate.toml 为准
+max-complexity-allowed = 5             # 与 quality-gate.toml L1（≤5）对齐；最终裁决仍以 toml 为准
 output-format = ["json"]               # 输出 JSON 供 tools.reporting.python_gate / complexity_precommit 解析
 output = "tests/reports/complexipy.json"  # 与 quality-gate.toml [report].json_report_path 一致
 exclude = ["__pycache__", ".cache"]    # 排除缓存；源码范围与 Ruff/Mypy/门禁扫描对齐

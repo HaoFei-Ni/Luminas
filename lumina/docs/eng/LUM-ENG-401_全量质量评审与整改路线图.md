@@ -7,7 +7,7 @@
 | 日期 | 2026-09-05 |
 | 基准 commit | `d3120b2` |
 | 权威技能 | `lumina-arc-skill` → `lumina-eng-skill` → `lumina-res-skill` |
-| 关联 | `LUM-ARC-001/101/201/301` · `LUM-ENG-101/201/301` · `LUM-PM-001` · `quality-gate.l5-target.toml` |
+| 关联文档 | `LUM-ARC-001/101/201/301` · `LUM-ENG-101/201/301` · `LUM-PM-001` · `quality-gate.l5-target.toml` |
 
 ## 0. 专家团主裁决（一句话）
 

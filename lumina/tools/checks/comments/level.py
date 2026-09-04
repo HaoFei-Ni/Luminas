@@ -7,9 +7,16 @@ numeric-contract banners on product core paths.
 from __future__ import annotations
 
 import fnmatch
-import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
+
+from tools.checks.comments.level_read import read_banner
+
+
+class _BannerFile(Protocol):
+    file_key: str
+    path: str
+
 
 _L5_SWITCHES = (
     "require_file_banner",
@@ -29,8 +36,6 @@ _DEFAULT_MARKERS = (
     "预言机",
     "LUMA_ULP",
 )
-
-_BANNER_END = re.compile(r"\*/")
 
 
 def comment_level_violations(config: dict[str, Any]) -> list[dict[str, str]]:
@@ -62,19 +67,28 @@ def numeric_contract_banner_violations(
     out: list[dict[str, str]] = []
     # 单遍：只检核心路径，避免把有损基线误绑 L5 契约。
     for item in files:
-        if not _matched(item.file_key, patterns):
-            continue
-        if _has_marker(_read_banner(Path(item.path)), markers):
-            continue
-        out.append(
-            _violation(
-                item.file_key,
-                "L5核心文件头缺少数值契约线索（L5/2-ulp/bit-exact/有限等）",
-                0,
-                1,
-            )
-        )
+        violation = _contract_banner_violation(item, patterns, markers)
+        if violation is not None:
+            out.append(violation)
     return out
+
+
+def _contract_banner_violation(
+    item: _BannerFile,
+    patterns: list[str],
+    markers: list[str],
+) -> dict[str, str] | None:
+    """Return one banner violation when a matched file lacks contract clues."""
+    if not _matched(item.file_key, patterns):
+        return None
+    if _has_marker(read_banner(Path(item.path)), markers):
+        return None
+    return _violation(
+        item.file_key,
+        "L5核心文件头缺少数值契约线索（L5/2-ulp/bit-exact/有限等）",
+        0,
+        1,
+    )
 
 
 def _matched(file_key: str, patterns: list[str]) -> bool:
@@ -84,34 +98,6 @@ def _matched(file_key: str, patterns: list[str]) -> bool:
 def _has_marker(text: str, markers: list[str]) -> bool:
     lowered = text.lower()
     return any(marker.lower() in lowered for marker in markers)
-
-
-def _read_banner(path: Path) -> str:
-    """Return leading file banner text (block or line comments)."""
-    text = _safe_text(path).lstrip("\ufeff").lstrip()
-    if text.startswith("/*"):
-        match = _BANNER_END.search(text)
-        return text[: match.end()] if match else text[:800]
-    if text.startswith("//"):
-        return _line_banner(text)
-    return ""
-
-
-def _safe_text(path: Path) -> str:
-    try:
-        return path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return ""
-
-
-def _line_banner(text: str) -> str:
-    chunk: list[str] = []
-    # 必须连续 //：空行结束文件头注释块。
-    for line in text.splitlines():
-        if not line.startswith("//"):
-            break
-        chunk.append(line)
-    return "\n".join(chunk)
 
 
 def _violation(target: str, issue: str, current: int, limit: int) -> dict[str, str]:

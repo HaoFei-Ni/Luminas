@@ -8,25 +8,13 @@
 
 from __future__ import annotations
 
-import sys
-import tomllib
-from pathlib import Path
 from typing import Any
 
 from tools.checks.comments.level import comment_level_violations, numeric_contract_banner_violations
 from tools.checks.native.file_gate import doc_file_violations, file_structure_violations
 from tools.checks.native.function_gate import function_structure_violations
 from tools.checks.native.metrics import CFileMetrics, CFunctionMetrics, measure_c_files
-
-
-def load_config(config_path: str = "quality-gate.toml") -> dict[str, Any]:
-    """从 lumina 工作目录加载质量门禁 TOML；缺失则直接退出."""
-    path = Path(config_path)
-    if not path.exists():
-        print(f"[ERROR] 配置文件不存在: {config_path}")
-        sys.exit(1)
-    with path.open("rb") as handle:
-        return dict(tomllib.load(handle))
+from tools.support.gate_config import load_quality_gate as load_config
 
 
 def comment_features(config: dict[str, Any]) -> dict[str, Any]:

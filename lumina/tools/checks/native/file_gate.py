@@ -34,21 +34,50 @@ def doc_file_violations(files: list[CFileMetrics], features: dict[str, Any]) -> 
     return violations
 
 
+def _physical_line_violation(
+    item: CFileMetrics,
+    features: dict[str, Any],
+    thresholds: dict[str, Any],
+) -> dict[str, str] | None:
+    """Return a physical-line violation when enabled and over limit."""
+    if not features["enable_file_lines_check"]:
+        return None
+    limit = thresholds["max_header_physical_lines"] if item.is_header else thresholds["max_impl_physical_lines"]
+    if item.lines <= limit:
+        return None
+    kind = "头文件" if item.is_header else "实现文件"
+    return _violation(item.file_key, f"C{kind}物理行数超限", item.lines, limit)
+
+
+def _function_count_violation(
+    item: CFileMetrics,
+    features: dict[str, Any],
+    thresholds: dict[str, Any],
+) -> dict[str, str] | None:
+    """Return a function-count violation when enabled and over limit."""
+    if not features["enable_function_count_check"]:
+        return None
+    max_funcs = thresholds["max_functions_per_file"]
+    if item.function_count <= max_funcs:
+        return None
+    return _violation(item.file_key, "C单文件函数数量超限", item.function_count, max_funcs)
+
+
 def _one_file_size(
     item: CFileMetrics,
     features: dict[str, Any],
     thresholds: dict[str, Any],
 ) -> list[dict[str, str]]:
     """Emit size/count violations for one C file."""
-    out: list[dict[str, str]] = []
-    limit = thresholds["max_header_physical_lines"] if item.is_header else thresholds["max_impl_physical_lines"]
-    if features["enable_file_lines_check"] and item.lines > limit:
-        kind = "头文件" if item.is_header else "实现文件"
-        out.append(_violation(item.file_key, f"C{kind}物理行数超限", item.lines, limit))
-    max_funcs = thresholds["max_functions_per_file"]
-    if features["enable_function_count_check"] and item.function_count > max_funcs:
-        out.append(_violation(item.file_key, "C单文件函数数量超限", item.function_count, max_funcs))
-    return out
+    return [
+        violation
+        # 必须滤掉 None：两项检查各自独立，避免空槽进报告。
+        for violation in (
+            _physical_line_violation(item, features, thresholds),
+            _function_count_violation(item, features, thresholds),
+        )
+        if violation is not None
+    ]
 
 
 def _one_file_docs(item: CFileMetrics, features: dict[str, Any]) -> list[dict[str, str]]:

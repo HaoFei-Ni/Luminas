@@ -7,29 +7,18 @@
 from __future__ import annotations
 
 import json
-import sys
-import tomllib
 from pathlib import Path
 from typing import Any
 
+from tools.checks.performance.gate_compare import compare_scores, missing_required_violations, violation
 from tools.checks.performance.protocol import (
     DEFAULT_MAX_REGRESSION,
-    check_latency_regression,
     interleaved_relative_score,
 )
 from tools.checks.performance.workloads import bench_workloads, make_calib
+from tools.support.gate_config import load_quality_gate as load_config
 
 _BASELINE_SCHEMA = 1
-
-
-def load_config(config_path: str = "quality-gate.toml") -> dict[str, Any]:
-    """Load quality-gate.toml from the lumina working directory."""
-    path = Path(config_path)
-    if not path.exists():
-        print(f"[ERROR] 配置文件不存在: {config_path}")
-        sys.exit(1)
-    with path.open("rb") as handle:
-        return dict(tomllib.load(handle))
 
 
 def perf_violations(config: dict[str, Any]) -> list[dict[str, str]]:
@@ -41,17 +30,7 @@ def perf_violations(config: dict[str, Any]) -> list[dict[str, str]]:
     if ratio_issue:
         return ratio_issue
     scores = _measure_relative_scores()
-    required = [str(item) for item in standard.get("required_score_keys", [])]
-    missing = [
-        _violation(
-            name,
-            "缺少产品 L4 工作负载（请 uv run python -m tools.run_build 并保证 pytest 能 import 扩展）",
-            0,
-            1,
-        )
-        for name in required  # 必须缺键即失败：避免扩展未构建时静默空跑
-        if name not in scores
-    ]
+    missing = missing_required_violations(scores, standard)
     if missing:
         return missing
     baseline_path = Path(standard.get("baseline_path", "tests/python/baselines/l4_perf_baseline.json"))
@@ -59,7 +38,7 @@ def perf_violations(config: dict[str, Any]) -> list[dict[str, str]]:
     if isinstance(baseline_issue, list):
         return baseline_issue
     max_ratio = float(standard.get("max_latency_regression", DEFAULT_MAX_REGRESSION))
-    return _compare_scores(scores, baseline_issue.get("scores", {}), max_ratio)
+    return compare_scores(scores, baseline_issue.get("scores", {}), max_ratio)
 
 
 def _ratio_cap_violation(standard: dict[str, Any]) -> list[dict[str, str]]:
@@ -68,7 +47,7 @@ def _ratio_cap_violation(standard: dict[str, Any]) -> list[dict[str, str]]:
     if max_ratio <= DEFAULT_MAX_REGRESSION:
         return []
     return [
-        _violation(
+        violation(
             "perf_standard",
             f"最高档 max_latency_regression 不得超过 {DEFAULT_MAX_REGRESSION}",
             max_ratio,
@@ -80,12 +59,12 @@ def _ratio_cap_violation(standard: dict[str, Any]) -> list[dict[str, str]]:
 def _load_baseline_or_violation(baseline_path: Path) -> dict[str, Any] | list[dict[str, str]]:
     """Load baseline JSON or return a single violation list."""
     if not baseline_path.exists():
-        return [_violation(str(baseline_path), "缺少 L4 性能基线文件（最高档强制）", 0, 1)]
+        return [violation(str(baseline_path), "缺少 L4 性能基线文件（最高档强制）", 0, 1)]
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
     if int(baseline.get("schema", 0)) == _BASELINE_SCHEMA:
         return baseline
     return [
-        _violation(
+        violation(
             str(baseline_path),
             "性能基线 schema 不匹配",
             int(baseline.get("schema", 0)),
@@ -104,36 +83,6 @@ def _measure_relative_scores() -> dict[str, float]:
     return scores
 
 
-def _compare_scores(
-    current: dict[str, float],
-    baseline: dict[str, float],
-    max_ratio: float,
-) -> list[dict[str, str]]:
-    """Compare each bench score to baseline with latency-style 2% cap."""
-    out: list[dict[str, str]] = []
-    # 单遍：基线键必须齐全，禁止静默少跑。
-    for name, base in baseline.items():
-        if name not in current:
-            out.append(_violation(name, "缺少对应 L4 计分结果", 0, 1))
-            continue
-        issue = check_latency_regression(current[name], float(base), max_ratio=max_ratio)
-        if issue:
-            out.append(_violation(name, issue, current[name], float(base) * (1.0 + max_ratio)))
-    extras = [name for name in current if name not in baseline]
-    out.extend(_violation(name, "出现未登记的 L4 bench（须写入基线）", 1, 0) for name in extras)
-    return out
-
-
-def _violation(target: str, issue: str, current: float | int, limit: float | int) -> dict[str, str]:
-    """Normalized violation record."""
-    return {
-        "target": target,
-        "issue": issue,
-        "current": str(current),
-        "limit": str(limit),
-    }
-
-
 def main() -> int:
     """Run L4 perf gate and print a compact summary."""
     config = load_config()
@@ -146,7 +95,7 @@ def main() -> int:
         print(f"[FAIL] perf-l4: {exc}")
         return 1
     print(f"[INFO] perf-l4 findings={len(violations)}")
-    # 单遍：逐条输出便于 CI 定位。
+    # 必须单遍输出：便于 CI 逐条定位失败项。
     for item in violations:
         print(f"  - {item['target']}: {item['issue']}")
     if violations:

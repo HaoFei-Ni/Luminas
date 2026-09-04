@@ -29,3 +29,15 @@
 4. 实验结论不写入 `docs/`：协议与 lab log → `../research/`；归档产物 → `../experiments/`。
 5. 「无损 / lossless」未通过 `lumina-res-skill` 三级门前，一律写作 **candidate lossless path**。
 6. GPU 档位统一为 **S = 4 GB / M = 24 GB / L = 80 GB**（见 `lumina-eng-skill`）。
+
+## 文档质量档位（现行 L5）
+
+真值源：`../quality-gate.toml` `[document_standard]` → `tools.checks.docs.gate`。
+
+| 域 | 配置键 | 路径 | 档位 |
+|---|---|---|---|
+| 架构设计文档 | `architecture` | `docs/arc/LUM-ARC-*.md` | **L5** |
+| 技术文档 | `technical` | `docs/eng/LUM-ENG-*.md` | **L5** |
+| 实验研究文档 | `research` | `docs/res/LUM-RES-*.md` | **L5** |
+
+L5 强制：元信息五字段、状态用语（生效/草案/计划）、权威技能对齐、H1 含域编号、至少一节编号章节。细则见 `eng/LUM-ENG-101` §8.3。

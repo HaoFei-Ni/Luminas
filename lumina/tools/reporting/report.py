@@ -78,11 +78,8 @@ def health_score(
         score = max(0, score - _PENALTY.get(item["issue"], 5))
     if not function_metrics and not file_metrics:
         return score, "-"
-    # 必须自上而下首个命中：避免嵌套三元抬高认知复杂度。
-    for threshold, grade in _GRADE_BANDS:
-        if score >= threshold:
-            return score, grade
-    return score, "D"
+    grade = next((band for threshold, band in _GRADE_BANDS if score >= threshold), "D")
+    return score, grade
 
 
 def generate_markdown_report(

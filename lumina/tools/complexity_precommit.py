@@ -30,6 +30,15 @@ def _load_threshold() -> int:
     return int(data["thresholds"]["max_cognitive_complexity"])
 
 
+def _configured_scan_targets() -> list[str]:
+    """Return absolute paths for configured scan roots under ``lumina/``."""
+    config_path = _LUMINA_DIR / "quality-gate.toml"
+    with config_path.open("rb") as handle:
+        data: Dict[str, Any] = tomllib.load(handle)
+    roots = data["scan"]["include_paths"]
+    return [str(_LUMINA_DIR / root) for root in roots]
+
+
 def _staged_targets(argv: list[str]) -> list[str]:
     """Return staged python files from argv, or the configured scan roots.
 
@@ -39,11 +48,7 @@ def _staged_targets(argv: list[str]) -> list[str]:
     excluded from the product cognitive-complexity hook.
     """
     if not argv:
-        config_path = _LUMINA_DIR / "quality-gate.toml"
-        with config_path.open("rb") as handle:
-            data: Dict[str, Any] = tomllib.load(handle)
-        roots = data["scan"]["include_paths"]
-        return [str(_LUMINA_DIR / root) for root in roots]
+        return _configured_scan_targets()
     targets: list[str] = []
     # 必须跳过 theory/：产品认知复杂度钩子不得误伤 F1–F7 核验脚本。
     for raw in argv:
@@ -71,14 +76,23 @@ def _normalize_staged(path_str: str) -> Path:
     path = Path(path_str)
     if path.is_file():
         return path.resolve()
-    if path.parts[:1] == ("lumina",) and len(path.parts) > 1:
-        candidate = _LUMINA_DIR.joinpath(*path.parts[1:])
-        if candidate.is_file():
-            return candidate.resolve()
-    candidate = _LUMINA_DIR / path
-    if candidate.is_file():
-        return candidate.resolve()
+    prefixed = _try_lumina_prefix(path)
+    if prefixed is not None:
+        return prefixed
+    under_lumina = _LUMINA_DIR / path
+    if under_lumina.is_file():
+        return under_lumina.resolve()
     return path
+
+
+def _try_lumina_prefix(path: Path) -> Path | None:
+    """Return a resolved file under ``lumina/`` when ``path`` starts with that prefix."""
+    if path.parts[:1] != ("lumina",) or len(path.parts) <= 1:
+        return None
+    candidate = _LUMINA_DIR.joinpath(*path.parts[1:])
+    if not candidate.is_file():
+        return None
+    return candidate.resolve()
 
 
 def _report_excess(complexities: Dict[tuple[str, str], int], threshold: int) -> list[tuple[str, str, int]]:

@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import re
 
+from tools.checks.native.function_spans_brace import brace_line_end
+
 _CONTROL = frozenset({"if", "for", "while", "switch", "do"})
 _FUNC_DEF = re.compile(
     r"(?:(?:__\w+|static|inline|extern|constexpr)\s+)*"
@@ -18,7 +20,7 @@ def function_spans(lines: list[str]) -> list[tuple[str, int, int]]:
     """用花括号配对切出 ``(name, start_line, end_line)``（1-based，含端点）."""
     spans: list[tuple[str, int, int]] = []
     index = 0
-    # 单遍：跳过注释/预处理后定位定义，避免嵌套静态函数重复计数。
+    # 必须单遍扫描：跳过噪声后定位定义，避免嵌套静态函数重复计数。
     while index < len(lines):
         if _skip_line(lines[index].strip()):
             index += 1
@@ -28,7 +30,7 @@ def function_spans(lines: list[str]) -> list[tuple[str, int, int]]:
             index += 1
             continue
         spans.append(span)
-        # 跳到函数结束后，避免嵌套静态函数被外层重复扫描（少见但安全）。
+        # 必须跳到函数结束：避免嵌套静态函数被外层重复扫描。
         index = span[2]
     return spans
 
@@ -54,17 +56,24 @@ def _skip_line(stripped: str) -> bool:
 def _definition_name_at(lines: list[str], start: int) -> str | None:
     """若 ``start`` 起是函数定义（非原型），返回函数名."""
     window: list[str] = []
-    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
+    # 必须窗口扫描：分号无花括号为原型，有花括号才解析定义名。
     for index in range(start, min(start + 12, len(lines))):
         window.append(lines[index].rstrip())
         joined = " ".join(part.strip() for part in window)
-        # 仅有分号、无花括号 → 原型，交给头文件文档检查。
-        if ";" in joined and "{" not in joined:
-            return None
-        if "{" not in joined:
+        step = _window_name_step(joined)
+        if step is False:
             continue
-        return _name_from_joined(joined)
+        return step
     return None
+
+
+def _window_name_step(joined: str) -> str | None | False:
+    """Return name, ``None`` for prototype, or ``False`` to keep widening the window."""
+    if ";" in joined and "{" not in joined:
+        return None
+    if "{" not in joined:
+        return False
+    return _name_from_joined(joined)
 
 
 def _name_from_joined(joined: str) -> str | None:
@@ -78,7 +87,7 @@ def _name_from_joined(joined: str) -> str | None:
 
 def _opening_brace_line(lines: list[str], start: int) -> int | None:
     """定义起始行起找首个 ``{``；途中先遇 ``;`` 则不是定义."""
-    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
+    # 必须窗口扫描：先遇分号则判定为原型而非定义。
     for index in range(start, min(start + 12, len(lines))):
         if "{" in lines[index]:
             return index
@@ -91,26 +100,10 @@ def match_braces(lines: list[str], start: int) -> int | None:
     """从 ``start`` 行的首个 ``{`` 配对到同深度 ``}``，返回结束行下标."""
     depth = 0
     started = False
-    # 单遍：逐字符调深度，避免嵌套 for/if 抬高控制嵌套。
+    # 必须逐行配对：字符级调深度，闭合即结束。
     for index in range(start, len(lines)):
-        end = _brace_line_end(lines[index], depth, started)
+        end = brace_line_end(lines[index], depth, started)
         if end[0]:
             return index
         depth, started = end[1], end[2]
     return None
-
-
-def _brace_line_end(line: str, depth: int, started: bool) -> tuple[bool, int, bool]:
-    """Apply one source line to brace depth; return (done, depth, started)."""
-    # 单遍：字符级配对，闭合即结束，避免嵌套深度漂移。
-    for char in line:
-        if char == "{":
-            depth += 1
-            started = True
-            continue
-        if char != "}":
-            continue
-        depth -= 1
-        if started and depth == 0:
-            return True, depth, started
-    return False, depth, started

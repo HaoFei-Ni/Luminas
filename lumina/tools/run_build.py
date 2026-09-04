@@ -6,27 +6,11 @@ import argparse
 import os
 import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 
 from tools.support.cache import lumina_root
 from tools.support.dev_env import find_cmake, find_ninja, prepend_tool_bins_to_path
-
-
-def _vcvars() -> Path | None:
-    forced = os.environ.get("LUMINA_VCVARS")
-    if forced and Path(forced).is_file():
-        return Path(forced)
-    # 必须扫候选：BuildTools 安装根盘符不固定。
-    for root in (
-        Path(r"D:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools"),
-        Path(r"C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools"),
-        Path(r"C:\Program Files\Microsoft Visual Studio\2022\BuildTools"),
-    ):
-        candidate = root / "VC" / "Auxiliary" / "Build" / "vcvarsall.bat"
-        if candidate.is_file():
-            return candidate
-    return None
+from tools.support.vcvars import run_via_vcvars
 
 
 def _run(cmd: list[str], *, cwd: Path) -> None:
@@ -36,32 +20,23 @@ def _run(cmd: list[str], *, cwd: Path) -> None:
         raise SystemExit(completed.returncode)
 
 
+def _run_ctest(cmake: Path, build_dir: Path, *, cwd: Path) -> None:
+    """Run ctest beside ``cmake`` or from PATH after a direct pipeline build."""
+    ctest_name = "ctest.exe" if os.name == "nt" else "ctest"
+    ctest = cmake.with_name(ctest_name)
+    if ctest.is_file():
+        resolved = ctest
+    else:
+        which = shutil.which("ctest")
+        if not which:
+            raise SystemExit("ctest not found next to cmake")
+        resolved = Path(which)
+    _run([str(resolved), "--test-dir", str(build_dir), "--output-on-failure"], cwd=cwd)
+
+
 def _run_via_vcvars(steps: list[str], *, cwd: Path) -> None:
-    """Write a temp .bat that calls vcvarsall then runs build steps (stable quoting)."""
-    vcvars = _vcvars()
-    if vcvars is None:
-        raise SystemExit("vcvarsall.bat not found; install VS Build Tools C++ workload")
-    lines = [
-        "@echo off",
-        "setlocal",
-        f'call "{vcvars}" x64',
-        "if errorlevel 1 exit /b 1",
-        *steps,
-        "exit /b %ERRORLEVEL%",
-    ]
-    with tempfile.NamedTemporaryFile("w", suffix=".bat", delete=False, encoding="utf-8") as handle:
-        handle.write("\r\n".join(lines) + "\r\n")
-        bat = Path(handle.name)
-    try:
-        print("[build] via", bat, flush=True)
-        # 必须逐条回显：vcvars 脚本失败时便于定位卡在哪一步。
-        for step in steps:
-            print("[build]", step, flush=True)
-        completed = subprocess.run(["cmd", "/c", str(bat)], cwd=cwd, check=False)  # noqa: S603, S607
-        if completed.returncode != 0:
-            raise SystemExit(completed.returncode)
-    finally:
-        bat.unlink(missing_ok=True)
+    """Delegate to ``tools.support.vcvars`` (kept name for call sites)."""
+    run_via_vcvars(steps, cwd=cwd)
 
 
 def _pybind11_dir() -> Path | None:
@@ -115,13 +90,7 @@ def _direct_pipeline(cmake: Path, preset: str, build_dir: Path, run_tests: bool)
     _run([str(cmake), "--build", str(build_dir)], cwd=root)
     if not run_tests:
         return
-    ctest = cmake.with_name("ctest.exe" if os.name == "nt" else "ctest")
-    if not ctest.is_file():
-        which = shutil.which("ctest")
-        if not which:
-            raise SystemExit("ctest not found next to cmake")
-        ctest = Path(which)
-    _run([str(ctest), "--test-dir", str(build_dir), "--output-on-failure"], cwd=root)
+    _run_ctest(cmake, build_dir, cwd=root)
 
 
 def main(argv: list[str] | None = None) -> int:

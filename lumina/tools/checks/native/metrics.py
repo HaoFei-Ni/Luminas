@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from tools.checks.comments.comments import uncommented_complex_c_lines
+from tools.checks.native.c_physical import collect_under_root, count_physical
 from tools.checks.native.complexity import measure_c_complexity
 from tools.checks.native.doc_comments import has_file_banner, has_leading_doc_comment
 from tools.checks.native.function_spans import function_spans
@@ -25,8 +26,6 @@ __all__ = [
     "function_spans",
     "measure_c_files",
 ]
-
-_C_SUFFIXES = frozenset({".c", ".h", ".cu", ".cuh", ".cpp", ".hpp", ".cc"})
 
 
 @dataclass(frozen=True)
@@ -68,7 +67,7 @@ def collect_c_files(roots: list[str], exclude_patterns: list[str]) -> list[Path]
     found: list[Path] = []
     # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for root in roots:
-        found.extend(_collect_root(Path(root)))
+        found.extend(collect_under_root(Path(root)))
     return sorted(
         {path for path in found if not any(fnmatch.fnmatch(as_file_key(path), pattern) for pattern in exclude_patterns)}
     )
@@ -103,15 +102,6 @@ def _require_why(file_key: str, why_patterns: list[str]) -> bool:
     return any(fnmatch.fnmatch(file_key, pat) for pat in why_patterns)
 
 
-def _collect_root(base: Path) -> list[Path]:
-    """单个 root：文件则按后缀过滤；目录则递归."""
-    if base.is_file() and base.suffix in _C_SUFFIXES:
-        return [base]
-    if not base.is_dir():
-        return []
-    return [path for path in base.rglob("*") if path.is_file() and path.suffix in _C_SUFFIXES]
-
-
 def _measure_one(path: Path, *, require_why: bool = False) -> tuple[CFileMetrics, list[CFunctionMetrics]]:
     """读入单文件，切函数 span 后挂上循环/递归/文档标志."""
     raw_lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -120,7 +110,7 @@ def _measure_one(path: Path, *, require_why: bool = False) -> tuple[CFileMetrics
     file_metrics = CFileMetrics(
         file_key=file_key,
         path=str(path),
-        lines=_count_physical(raw_lines),
+        lines=count_physical(raw_lines),
         function_count=len(spans),
         is_header=path.suffix in {".h", ".cuh", ".hpp"},
         has_file_banner=has_file_banner(raw_lines),
@@ -144,7 +134,7 @@ def _function_metric(
     return CFunctionMetrics(
         file_key=file_key,
         name=name,
-        lines=_count_physical(body),
+        lines=count_physical(body),
         start_line=start,
         loop_nesting=nesting,
         loop_count=count,
@@ -154,17 +144,3 @@ def _function_metric(
         has_doc_comment=has_leading_doc_comment(raw_lines, start),
         uncommented_complex=len(uncommented_complex_c_lines(body, require_why=require_why)),
     )
-
-
-def _count_physical(lines: list[str]) -> int:
-    """统计计入门禁的物理行（空行/整行注释不计）."""
-    total = 0
-    # 单遍：空行与整行注释不计物理行，避免虚高门禁行数。
-    for line in lines:
-        stripped = line.strip()
-        if not stripped or stripped.startswith("//"):
-            continue
-        if stripped.startswith("/*") and stripped.endswith("*/"):
-            continue
-        total += 1
-    return total

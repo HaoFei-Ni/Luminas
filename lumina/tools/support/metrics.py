@@ -47,14 +47,18 @@ def complexity_map(raw: list[dict[str, Any]]) -> dict[tuple[str, str], int]:
     result: dict[tuple[str, str], int] = {}
     # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for entry in raw:
-        if "file_path" in entry:
-            result.update(_group_entries(entry))
-        elif "path" in entry and "function_name" in entry:
-            key = (as_file_key(entry["path"]), str(entry["function_name"]))
-            result[key] = int(entry["complexity"])
-        else:
-            raise ValueError(f"Unrecognized complexipy report entry: {entry!r}")
+        result.update(_parse_complexipy_entry(entry))
     return result
+
+
+def _parse_complexipy_entry(entry: dict[str, Any]) -> dict[tuple[str, str], int]:
+    """Convert one complexipy JSON record into a (file, function) complexity map."""
+    if "file_path" in entry:
+        return _group_entries(entry)
+    if "path" in entry and "function_name" in entry:
+        key = (as_file_key(entry["path"]), str(entry["function_name"]))
+        return {key: int(entry["complexity"])}
+    raise ValueError(f"Unrecognized complexipy report entry: {entry!r}")
 
 
 def _group_entries(entry: dict[str, Any]) -> dict[tuple[str, str], int]:

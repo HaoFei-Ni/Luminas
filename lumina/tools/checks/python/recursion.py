@@ -23,11 +23,9 @@ def _calls_name(node: ast.AST, name: str) -> bool:
 
     只认 ``Name``，不认 ``obj.name`` 属性调用，避免把方法转发误判成递归。
     """
-    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
-    for child in ast.walk(node):
-        if not isinstance(child, ast.Call):
-            continue
-        func = child.func
-        if isinstance(func, ast.Name) and func.id == name:
-            return True
-    return False
+    return any(_is_self_name_call(child, name) for child in ast.walk(node))
+
+
+def _is_self_name_call(node: ast.AST, name: str) -> bool:
+    """True when ``node`` is a direct call to bare identifier ``name``."""
+    return isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == name

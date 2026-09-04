@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from tools.checks.native.loop_skip import skip_braces, skip_parens, skip_space
+from tools.checks.native.loop_skip import advance_block_depth, skip_braces, skip_parens, skip_space
 
 _LOOP_HEAD = re.compile(r"\b(for|while|do)\b")
 
@@ -105,11 +105,7 @@ def _walk_block(text: str, start: int, active: int, peak: list[int], count: list
             # 传入当前 active：块内再遇循环即嵌套 +1。
             index = _consume_loop(text, match, index, active, peak, count)
             continue
-        char = text[index]
-        if char == "{":
-            depth += 1
-        elif char == "}":
-            depth -= 1
+        depth = advance_block_depth(text[index], depth)
         index += 1
     return index
 

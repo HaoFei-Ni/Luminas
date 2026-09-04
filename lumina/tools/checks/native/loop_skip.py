@@ -20,9 +20,28 @@ def skip_parens(text: str, start: int) -> int:
     return skip_balanced(text, index, "(", ")")
 
 
+def advance_block_depth(char: str, depth: int) -> int:
+    """Adjust brace depth for one character inside a block walk."""
+    if char == "{":
+        return depth + 1
+    if char == "}":
+        return depth - 1
+    return depth
+
+
 def skip_braces(text: str, start: int) -> int:
     """跳过从 ``start`` 开始的完整 ``{...}`` 组."""
     return skip_balanced(text, start, "{", "}")
+
+
+def _balanced_step(char: str, depth: int, open_ch: str, close_ch: str) -> tuple[int, bool]:
+    """Return updated depth and whether the balanced span closed."""
+    if char == open_ch:
+        return depth + 1, False
+    if char != close_ch:
+        return depth, False
+    new_depth = depth - 1
+    return new_depth, new_depth == 0
 
 
 def skip_balanced(text: str, start: int, open_ch: str, close_ch: str) -> int:
@@ -33,12 +52,7 @@ def skip_balanced(text: str, start: int, open_ch: str, close_ch: str) -> int:
     while index < len(text):
         char = text[index]
         index += 1
-        if char == open_ch:
-            depth += 1
-            continue
-        if char != close_ch:
-            continue
-        depth -= 1
-        if depth == 0:
+        depth, done = _balanced_step(char, depth, open_ch, close_ch)
+        if done:
             return index
     return index

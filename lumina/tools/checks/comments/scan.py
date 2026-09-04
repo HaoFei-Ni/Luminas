@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 
+from tools.checks.comments.scan_inline import inline_comment_text, is_comment_only, line_is_trivial
 from tools.checks.comments.why import is_why_comment
 
 
@@ -36,9 +37,7 @@ def _line_needs_comment(
 ) -> bool:
     """True when this line is complex and lacks a qualifying adjacent comment."""
     stripped = raw.strip()
-    if not stripped or stripped in {"{", "}", "};"}:
-        return False
-    if _is_comment_only(stripped, c_style) or (c_style and stripped.startswith("#")):
+    if line_is_trivial(stripped, c_style):
         return False
     code = _strip_strings(_code_part(raw, c_style))
     if not pattern.search(code):
@@ -67,37 +66,15 @@ def _strip_strings(code: str) -> str:
     return re.sub(r'"(?:\\.|[^"\\])*"', '""', code)
 
 
-def _is_comment_only(stripped: str, c_style: bool) -> bool:
-    """整行是否为注释."""
-    if not c_style:
-        return stripped.startswith("#")
-    return stripped == "*/" or stripped.startswith(("//", "/*", "*"))
-
-
 def _adjacent_comment_text(lines: list[str], index: int, c_style: bool) -> str | None:
     """同行尾注释，或紧邻上一非空注释行的正文；无则 None."""
-    inline = _inline_comment_text(lines[index], c_style)
+    inline = inline_comment_text(lines[index], c_style)
     if inline is not None:
         return inline
     prev = index - 1
     # 跳过空行：贴身注释允许空行间隔，避免误杀格式化结果。
     while prev >= 0 and not lines[prev].strip():
         prev -= 1
-    if prev < 0 or not _is_comment_only(lines[prev].strip(), c_style):
+    if prev < 0 or not is_comment_only(lines[prev].strip(), c_style):
         return None
     return lines[prev].strip()
-
-
-def _inline_comment_text(raw: str, c_style: bool) -> str | None:
-    """Extract trailing comment on a code line, if any."""
-    if not c_style:
-        if "#" not in raw or not raw[: raw.index("#")].strip():
-            return None
-        return raw[raw.index("#") :]
-    if "//" in raw:
-        return raw[raw.index("//") :]
-    if "/*" not in raw:
-        return None
-    start = raw.index("/*")
-    end = raw.find("*/", start)
-    return raw[start : end + 2] if end >= 0 else None

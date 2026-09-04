@@ -35,8 +35,10 @@ uv run python -m tools.run_quality_gate
 | ruff | `ruff check tools tests` | Lint + docstring D |
 | python-structure | `tools.reporting.python_gate` | Size / complexity / architecture / HA（`tools` + `tests`；不含 `theory/`） |
 | c-structure | `tools.checks.native.gate` | C/CUDA structure + zero-loop hot path |
-| naming | `tools.checks.naming.gate` | LUM-ENG-101 |
+| naming-l5 | `tools.checks.naming.gate` | 文件命名质量 L5 |
 | perf-l4 | `tools.checks.performance.gate` | 2+5 timed runs; ≤2% regression |
+| docs-l5 | `tools.checks.docs.gate` | 架构/技术/实验研究文档质量 L5 |
+| layout-l5 | `tools.checks.layout.gate` | 目录结构质量 L5 |
 
 Commit-time (seconds): root `.pre-commit-config.yaml` → ruff + `tools.complexity_precommit` only.
 
@@ -50,7 +52,7 @@ Commit-time (seconds): root `.pre-commit-config.yaml` → ruff + `tools.complexi
 
 ### 3.2 Package layout
 
-- `tools/checks/` — analyzers（architecture / native / reliability / naming / performance / python / comments）
+- `tools/checks/` — analyzers（architecture / native / reliability / naming / performance / python / comments / docs / layout）
 - `tools/reporting/` — Python structure gate + bilingual report
 - `tools/support/` — cache, Hypothesis, metrics facade
 - `tests/python/{checks,support,product}/` — mirrors the above taxonomy

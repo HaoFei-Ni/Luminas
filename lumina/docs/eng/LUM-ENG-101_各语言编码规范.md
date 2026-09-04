@@ -98,6 +98,20 @@
 - 理论核验在 `theory/state-cache/verify/`：主入口 `verify-degeneration.py`（F1–F7）；`check_identity.py` 为旧恒等脚手架，非 F 门。
 - 产品 2-ulp / L5 注释引用 **L5**（或历史「重构+2-ulp」语义），阈值用共享常量 `LUMA_ULP32 = 2^-23`，禁止在多处硬编码 `1.1920928955078125e-7`。理论 F2/F6/F7 用各自绝对容差，不套用 2-ulp。
 
+## 7.1 认知复杂度档位（Python，强制）
+
+`quality-gate.toml` `[thresholds].cognitive_complexity_level`（complexipy 分数带对齐）：
+
+| 档位 | 阈值 | 含义 |
+|---|---|---|
+| **L1**（现行） | ≤ 5 | Simple |
+| L2 | ≤ 10 | Moderate |
+| L3 | ≤ 15 | complexipy 默认 |
+| L4 | ≤ 20 | High |
+| L5 | ≤ 25 | Very high |
+
+`max_cognitive_complexity` 不得超过档位上限；`[tool.complexipy].max-complexity-allowed` 须与之对齐。C 侧圈复杂度仍按 eng-skill ≤ 5 / if 嵌套 ≤ 2（`[c_thresholds]`）。
+
 ## 8. 注释规范（强制）
 
 原则：**只写 why**（不变量 / 精度阶 / 边界 / 为何不能改），禁止复述 what。
@@ -122,14 +136,28 @@
 - **L2 扩模式**：另检 `__shared__` / `atomic*` 等。
 - 默认 `why_include_file_patterns = ["**"]`（全生产路径）。
 
-## 8.1 命名门禁（专业最高档，强制）
+## 8.1 文件命名质量门禁（L5 工业最高档，强制）
 
 `quality-gate.toml` `[naming_standard]` → `tools.checks.naming.gate`：
+
+| 档位 | 配置要点 | 裁决 |
+|---|---|---|
+| **L5**（现行） | `level = "L5"`：四开关全开且不可降级——`require_filename_rules` / `require_symbol_rules` / `require_macro_rules` / `require_include_guard`；且 `allow_baseline_macro_aliases = false` | 产品路径可发布 |
 
 - 文件：`luma_` 前缀；`baseline/` 下禁止文件名再含 `baseline`；禁用误导词与模糊段（`util`/`defs`/`helper`/`tmp`…）；缩写 `pow2` 必须写成 `power_of_two`。
 - 符号：`luma_<module>_<action…>`（≥3 段）；禁止双下划线/尾部下划线；层模块对齐；文件-符号模块前缀一致；dtype 仅 `_f32`/`_f64`。
 - 宏：公共宏 `LUMA_*`；禁止 `LUMA_BASELINE_*`；头文件 include guard 必须为 `LUMA_<STEM>_H`。
 - 层头：`luma_kernel.h` / `luma_cuda.h` / `luma_kv.h` / `luma_limits.h` / `luma_cuda_device.h`。
+
+## 8.1.1 目录结构质量门禁（L5 工业最高档，强制）
+
+`quality-gate.toml` `[layout_standard]` → `tools.checks.layout.gate`：
+
+| 档位 | 配置要点 | 裁决 |
+|---|---|---|
+| **L5**（现行） | `level = "L5"`：五开关全开——产品物理三层存在、内容平面存在、文档域 `docs/{arc,eng,res,pm}` 存在、扫描根下目录名 ASCII `snake_case`、禁止顶层 `common/include/src/lib` | ARC-101 可验收 |
+
+物理三层真值源：`LUM-ARC-101`（`algorithm/` → `kernel/` → `wrapper/`）。内容平面见 `LUM-ARC-001` §4.1。
 
 ## 8.2 性能门禁（L4 最高档，强制）
 
@@ -138,6 +166,22 @@
 - 协议固定：2 warmup + 5 timed；报告 mean±std；禁止 best-of-N / 缩小 warmup。
 - 相对校准分数（bench/calib）相对 `tests/python/baselines/l4_perf_baseline.json` 延迟升高 ≤ 2%。
 - `max_latency_regression` 不得放宽超过 0.02；缺基线直接失败。
+
+## 8.3 文档质量门禁（L5 工业最高档，强制）
+
+`quality-gate.toml` `[document_standard]` → `tools.checks.docs.gate`：
+
+| 域配置 | 路径 | 文件 | 权威技能 |
+|---|---|---|---|
+| `architecture`（架构设计文档） | `docs/arc/` | `LUM-ARC-*.md` | `lumina-arc-skill` |
+| `technical`（技术文档） | `docs/eng/` | `LUM-ENG-*.md` | `lumina-eng-skill` |
+| `research`（实验研究文档） | `docs/res/` | `LUM-RES-*.md` | `lumina-res-skill` |
+
+| 档位 | 配置要点 | 裁决 |
+|---|---|---|
+| **L5**（现行，三类域均为 L5） | `level = "L5"`：五开关全开且不可降级——元信息五字段（状态/版本/日期/权威技能/关联文档）、状态用语（生效/草案/计划，允许后缀说明）、权威技能对齐、H1 含域编号前缀、至少一节 `## N.` | 正式文档可引用 |
+
+`docs/pm/` 与各域 `README.md` 不在本门禁扫描范围。
 
 ## 9. 无魔法数字（强制）
 
