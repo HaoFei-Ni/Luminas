@@ -1,6 +1,6 @@
 /* luma_kv_finite.c — 有限性扫描（algorithm 唯一允许的必要单层循环）。
  *
- * eng-standard：algorithm 运行时零循环；变长 NaN/Inf 门禁在落地 SIMD/LUT
+ * lumina-eng-skill：algorithm 运行时零循环；变长 NaN/Inf 门禁在落地 SIMD/LUT
  * 真 Enc 前只能显式扫描。函数名列入 quality-gate loop_allowed_functions。
  */
 #include "luma_kv.h"

@@ -128,9 +128,9 @@ def main() -> int:
     for item in violations:
         print(f"  - {item['target']}: {item['issue']}")
     if violations:
-        print("❌ [NAMING-GATE-FAIL] 命名规范未通过")
+        print("[FAIL] naming")
         return 1
-    print("✅ [NAMING-GATE-PASS] 命名规范通过")
+    print("[PASS] naming")
     return 0
 
 

@@ -21,10 +21,10 @@ Group by route: quantization, eviction/sparsity, low-rank, architectural KV, hyb
 
 ## Method
 
-1. Block diagram of the four layers
+1. Block diagram of the four duty layers (and physical tree if needed)
 2. Algorithm + error bound (why 2 ulp / why PPL should not move)
 3. Complexity: time and KV bytes vs sequence length
-4. Implementation: tiling, memory pool, degrade path
+4. Implementation: tiling, memory pool, degrade path (S = 4 / M = 24 / L = 80 GB)
 
 ## Experimental Setup
 
@@ -32,7 +32,7 @@ Copy the locked suite from [experiment-matrix.md](experiment-matrix.md). Disclos
 
 ## Results
 
-Order: operator → model (PPL) → task. Include the three-level lossless table, ablation matrix, SOTA table, length and ratio curves. Every mean has ± std and n=5.
+Order: operator → model (PPL) → task. Include the three-level lossless table, ablation matrix, SOTA table, length and ratio curves. Every mean has ± std and n = 5.
 
 ## Discussion
 

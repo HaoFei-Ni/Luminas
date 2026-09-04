@@ -1,14 +1,15 @@
-"""全量质量门禁入口（CI/手动；不是 pre-commit 钩子）.
+"""Full quality-gate entry (CI / manual; not a pre-commit hook).
 
-始终以 ``lumina/`` 为根执行，避免从仓库根跑时路径漂移：
+Always runs with cwd = ``lumina/`` so report paths stay stable:
 
-1. ``ruff check``（含 pydocstyle D，注释/文档最高档）；
-2. complexipy + ``tools.ci_quality_gate``（Python 结构 + 行内 why）；
-3. ``tools.c_quality_gate``（C/CUDA 结构 + 行内 why）；
-4. ``tools.naming_gate``（LUM-ENG-101 命名最高档）；
-5. ``tools.perf_gate``（eng-standard L4 性能最高档：2+5、≤2% 回归）。
+1. ``ruff check`` (includes pydocstyle D);
+2. complexipy → ``tools.ci_quality_gate`` (Python structure + inline why);
+3. ``tools.c_quality_gate`` (C/CUDA structure + inline why);
+4. ``tools.naming_gate`` (LUM-ENG-101 naming);
+5. ``tools.perf_gate`` (L4: 2+5 timed runs, ≤2% regression).
 
-提交前秒级认知复杂度走 ``tools.complexity_precommit``，勿把全量门禁塞进 hook。
+Commit-time cognitive complexity uses ``tools.complexity_precommit``; do not
+fold this full suite into a hook.
 """
 
 from __future__ import annotations
@@ -22,19 +23,18 @@ from typing import Any
 
 from tools import quality_metrics
 
-# 本文件在 tools/ 下，父目录即 lumina/。
 _LUMINA_DIR = Path(__file__).resolve().parents[1]
 
 
 def _load_config() -> dict[str, Any]:
-    """加载 lumina/quality-gate.toml（扫描范围与报告路径的单一真值源）."""
+    """Load ``lumina/quality-gate.toml`` (scan + report single source of truth)."""
     config_path = _LUMINA_DIR / "quality-gate.toml"
     with config_path.open("rb") as handle:
         return dict(tomllib.load(handle))
 
 
 def _run_module(module: str) -> int:
-    """在当前进程 cwd（已 chdir 到 lumina）下跑 ``python -m <module>``."""
+    """Run ``python -m <module>`` with cwd already set to ``lumina/``."""
     result = subprocess.run(  # noqa: S603
         [sys.executable, "-m", module],
         check=False,
@@ -43,16 +43,33 @@ def _run_module(module: str) -> int:
 
 
 def _run_ruff() -> int:
-    """最高档：ruff lint（含 D docstring）扫 Python 生产与测试树."""
+    """Lint ``tools`` and ``tests`` with ruff (includes docstring D)."""
     result = subprocess.run(  # noqa: S603
         [sys.executable, "-m", "ruff", "check", "tools", "tests"],
         check=False,
     )
     if result.returncode != 0:
-        print("❌ [RUFF-FAIL] ruff check（含 docstring D）未通过")
+        print("[FAIL] ruff check")
         return result.returncode
-    print("✅ [RUFF-PASS] ruff check 通过")
+    print("[PASS] ruff check")
     return 0
+
+
+def _print_summary(stages: list[tuple[str, int]]) -> int:
+    """Print a stage table and return 0 only when every stage passed."""
+    print("")
+    print("| Stage | Status |")
+    print("|---|---|")
+    failed = 0
+    # 必须汇总各阶段：CI 需要一眼看到失败点，避免只看末尾 exit code。
+    for name, code in stages:
+        status = "PASS" if code == 0 else f"FAIL ({code})"
+        if code != 0:
+            failed = 1
+        print(f"| {name} | {status} |")
+    verdict = "PASS" if failed == 0 else "FAIL"
+    print(f"[GATE] overall={verdict}")
+    return failed
 
 
 def main() -> int:
@@ -62,15 +79,16 @@ def main() -> int:
     targets = list(config["scan"]["include_paths"])
     report_path = Path(config["report"]["json_report_path"])
     ruff_code = _run_ruff()
-    # complexipy 必须先写 JSON，ci_quality_gate 再读；顺序不可颠倒。
+    # complexipy must write JSON before ci_quality_gate reads it.
     quality_metrics.run_complexipy(targets, report_path)
-    py_code = _run_module("tools.ci_quality_gate")
-    c_code = _run_module("tools.c_quality_gate")
-    name_code = _run_module("tools.naming_gate")
-    perf_code = _run_module("tools.perf_gate")
-    if ruff_code != 0 or py_code != 0 or c_code != 0 or name_code != 0 or perf_code != 0:
-        return 1
-    return 0
+    stages = [
+        ("ruff", ruff_code),
+        ("python-structure", _run_module("tools.ci_quality_gate")),
+        ("c-structure", _run_module("tools.c_quality_gate")),
+        ("naming", _run_module("tools.naming_gate")),
+        ("perf-l4", _run_module("tools.perf_gate")),
+    ]
+    return _print_summary(stages)
 
 
 if __name__ == "__main__":

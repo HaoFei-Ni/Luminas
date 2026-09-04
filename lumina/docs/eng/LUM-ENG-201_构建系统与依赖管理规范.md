@@ -1,14 +1,19 @@
 # LUM-ENG-201 构建系统与依赖管理规范
 
-- 状态：**计划（尚未撰写）**
-- 关联：`LUM-ENG-001` · `eng-standard-skill`（"Build" 章节）· `LUM-ARC-101`（目录迁移须同步 CMake）
+| 字段 | 内容 |
+|:---|:---|
+| 状态 | 计划 |
+| 版本 | 0.1 |
+| 日期 | 2026-09-05 |
+| 权威技能 | `lumina-eng-skill`（Build） |
+| 关联文档 | `LUM-ENG-001` · `LUM-ARC-101` |
 
-## 计划覆盖内容
+## 1. 范围（待撰写正文）
 
-- CMake 目标划分（kernel / bind / tools），单一构建入口构建被测管线
-- 编译器 / CUDA toolkit / 驱动 / Python 依赖锁定（`uv.lock`），benchmark 报告记录版本
-- Conventional Commits：一个提交一个关注点，kernel 行为变更随 L1 测试
+1. CMake 目标划分（algorithm / kernel / wrapper / tools）；单一构建入口覆盖被测管线。
+2. 编译器、CUDA toolkit、驱动族、Python 依赖锁定（`uv.lock`）；benchmark 报告须记录版本。
+3. Conventional Commits：一提交一关注点；kernel 行为变更须附 L1 测试。
 
-## 现状指针
+## 2. 现状指针
 
-- 现有构建：`lumina/kernel/CMakeLists.txt`（`luma_cpu`/`luma_cuda` 静态库 + `luma_test_*` + pybind 模块，`LUMINA_BUILD_CUDA` 默认 OFF）。
+统一入口为 superproject：`lumina/CMakeLists.txt`。目标链：`luma_algorithm` → `luma_cpu` / `luma_cuda` → `_luma_native` / `_luma_cuda`。构建与测试命令见根 `README.md` 与 `lumina/tests/README.md`。

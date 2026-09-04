@@ -20,9 +20,16 @@ __pycache__/
 .ruff_cache/
 .complexipy_cache/
 
-# 质量门禁产物（complexipy JSON 原始报告 + Markdown 报告）
-complexipy-report.json
-complexipy-report.md
+# 质量门禁产物（tests/reports/；勿提交）
+tests/reports/complexipy.json
+tests/reports/quality-gate.md
+tests/reports/quality-gate.json
+# 兼容：旧文件名 / 根级误跑产物
+tests/reports/complexipy-report.json
+tests/reports/complexipy-report.md
+/complexipy-report.json
+/complexipy-report.md
+/complexipy.json
 
 # 覆盖率产物（pytest-cov / coverage.py）
 .coverage

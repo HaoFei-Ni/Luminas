@@ -1,47 +1,50 @@
-# LUMINAS（本仓库原创部分）
+# Luminas
 
-> 本仓库包含两个部分：
-> - **Luminas** —— 原创无损 KV-cache 压缩研究，源码全部位于 [`lumina/`](lumina/README.md)。
-> - **SpikingBrain2.0** —— 只读上游参考树（`spb2/`、`spb2vl/`、`spb2_vllm/`、`MoBA/`、`flash-linear-attention_dev/`、`run_model*`），**勿修改**；其说明见下文官方 README。
->
-> 架构身份与"原创 / 只读"边界由 `.cursor/skills/lumina/luminas-arch-skill` 定义。
+本仓库包含两部分：
 
-## Luminas 目录地图
+| 部分 | 说明 |
+|---|---|
+| **Luminas** | 原创无损 KV-cache 压缩研究；源码与正式文档均位于 [`lumina/`](lumina/README.md) |
+| **SpikingBrain2.0 等上游树** | 只读技术参考（`spb2/`、`spb2vl/`、`spb2_vllm/`、`MoBA/`、`flash-linear-attention_dev/`、`run_model*`）；**禁止修改** |
+
+架构身份与「原创 / 只读」边界由 `.cursor/skills/lumina/lumina-arc-skill` 定义。
+
+## 目录地图
 
 ```text
-lumina/                       源码与内容（唯一原创区）
-  algorithm/                  纯算法层（ANSI C 压缩数学）
-  kernel/                     CPU/CUDA 算子与基线（现有代码）
-  wrapper/                    平台封装层（对外 API / 绑定）
-  tools/                      Python 质量门禁（非算子；pytest/ruff/mypy 入口）
-  theory/  research/  tests/  方法笔记 / 实验协议 / 测试
-  docs/                       正式文档（arc/eng/res/pm × LUM-*）
-  refs/                       外部论文与规范
-  experiments/                实验归档产物 EXP-*
-.cursor/skills/lumina/         三技能：arch / eng-standard / research
+lumina/                        唯一原创内容区
+  algorithm/                   纯算法层（ANSI C）
+  kernel/                      CPU / CUDA 算子与有损基线
+  wrapper/                     平台封装（C-ABI / pybind）
+  tools/                       质量门禁与指标
+  theory/  research/  tests/   理论 / 实验协议 / 测试
+  docs/                        正式文档（arc / eng / res / pm × LUM-*）
+  refs/  experiments/          参考文献 / 实验归档
+.cursor/skills/lumina/         lumina-arc-skill · lumina-eng-skill · lumina-res-skill
 ```
 
-## LUM-* 编号体系
+## LUM-* 编号与权威技能
 
 | 域 | 权威技能 | 总纲 | 子文档 |
 |---|---|---|---|
-| 架构 | `luminas-arch-skill` | `lumina/docs/arc/LUM-ARC-001` | 101 分层 / 201 算子 / 301 接口 |
-| 工程 | `eng-standard-skill` | `lumina/docs/eng/LUM-ENG-001` | 101 编码 / 201 构建 / 301 测试 |
-| 科研 | `research-skill` | `lumina/docs/res/LUM-RES-001` | 101 消融 / 201 数据集 / 301 论文 |
+| 架构 | `lumina-arc-skill` | `lumina/docs/arc/LUM-ARC-001` | 101 分层 / 201 算子 / 301 接口 |
+| 工程 | `lumina-eng-skill` | `lumina/docs/eng/LUM-ENG-001` | 101 编码 / 201 构建 / 301 测试 |
+| 科研 | `lumina-res-skill` | `lumina/docs/res/LUM-RES-001` | 101 消融 / 201 数据集 / 301 论文 |
 | 项目 | — | `lumina/docs/pm/LUM-PM-001` | 里程碑 / 版本 |
 
-技能冲突优先级：`luminas-arch-skill` > `eng-standard-skill` > `research-skill` > Orchestra。
-分层模型冲突的唯一裁决点：`lumina/docs/arc/LUM-ARC-101`。
-"无损"未过 `research-skill` 三级门槛前一律称 **candidate lossless path**。
+- 技能优先级：`lumina-arc-skill` > `lumina-eng-skill` > `lumina-res-skill` > Orchestra  
+- 分层裁决：`lumina/docs/arc/LUM-ARC-101`  
+- 无损未过三级门前：写作 **candidate lossless path**  
+- GPU 档位：**S = 4 GB / M = 24 GB / L = 80 GB**
 
 ## 快速入口
 
 - 源码导航：[`lumina/README.md`](lumina/README.md)
-- C 测试（先构建）：`cmake -S lumina -B outputs/build/lumina && cmake --build outputs/build/lumina && ctest --test-dir outputs/build/lumina --output-on-failure`
+- C 测试：`cmake -S lumina -B outputs/build/lumina && cmake --build outputs/build/lumina && ctest --test-dir outputs/build/lumina --output-on-failure`
 - Python 测试：`cd lumina && uv run pytest`
-- 全量质量门禁：`cd lumina && uv run python -m tools.run_quality_gate`
-- 门禁矩阵：`.cursor/skills/lumina/eng-standard-skill/references/test-matrix.md`
-- 非目标清单：`.cursor/skills/lumina/luminas-arch-skill/references/non-goals.md`
+- 质量门禁：`cd lumina && uv run python -m tools.run_quality_gate`
+- 测试矩阵：`.cursor/skills/lumina/lumina-eng-skill/references/test-matrix.md`
+- 非目标清单：`.cursor/skills/lumina/lumina-arc-skill/references/non-goals.md`
 
 ## 相关外部仓库（cross-ref）
 

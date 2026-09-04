@@ -1,4 +1,4 @@
-"""C/C++/CUDA 文档注释检测（eng-standard / LUM-ENG-101 §8）.
+"""C/C++/CUDA 文档注释检测（lumina-eng-skill / LUM-ENG-101 §8）.
 
 策略（只查 why 文档是否存在，不查文风）：
 - 每个翻译单元必须以 ``/*`` 或 ``//`` 文件头 banner 开头；

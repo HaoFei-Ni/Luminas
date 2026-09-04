@@ -1,10 +1,17 @@
 # LUM-ENG-101 各语言编码规范
 
-- 状态：**草案（待评审，2026-09-04）** — 由全量命名审计产出，作为命名/符号/目录/文件/文档编号的统一约束
-- 关联：`LUM-ENG-001` · `eng-standard-skill`（最高优先级章节，本文件不与之冲突，只做命名侧标准化）· `LUM-ARC-101`（分层裁决）
-- 依据：Google C++ Style Guide · PyTorch(Meta) · OpenAI · Microsoft 开源命名规约，收敛到本项目既有 `luma_*` / `LUMA_*` 约定
+| 字段 | 内容 |
+|:---|:---|
+| 状态 | 草案 |
+| 版本 | 1.1 |
+| 日期 | 2026-09-05 |
+| 权威技能 | `lumina-eng-skill` |
+| 关联文档 | `LUM-ENG-001` · `LUM-ARC-101` |
+| 依据 | Google C++ Style · PyTorch · 既有 `luma_*` / `LUMA_*` 约定 |
 
-## 0. 项目身份命名（最高优先级，先于一切符号规则）
+本文件规定命名、符号、目录、文件与文档编号；不与 `lumina-eng-skill` 硬性工程条款冲突，仅做命名侧标准化。
+
+## 0. 项目身份命名（最高优先级）
 
 本项目同时出现四种拼写，必须收敛为一个权威口径：
 
@@ -81,12 +88,14 @@
 
 - `LUM-ARC-*` 架构 / `LUM-ENG-*` 工程 / `LUM-RES-*` 科研 / `LUM-PM-*` 项目。
 - 三级：`001` 总纲 → `1xx` 设计 → `2xx` 专项 → `3xx` 接口/体系。
-- 单一权威：分层裁决唯一在 `LUM-ARC-101`；理论命题编号唯一在 `theory/state-cache/`（P0–P5），其余推导文档引用同一编号，禁止另立 `§1–§22` 平行体系。
+- 单一权威：分层裁决唯一在 `LUM-ARC-101`；理论判据编号唯一在 `theory/state-cache/`（**F1–F7**，表征坍缩框架；权威稿 `framework.tex`），其余推导文档引用同一编号，禁止另立 `§1–§22` 或旧 **P0–P5** 平行体系。
+- 产品路径工程分层仍用 **L1–L5**（`lumina-eng-skill/references/test-matrix.md`）；勿把 F 编号与 L 编号混用。
 
 ## 7. 测试树命名
 
-- C 测试统一放 `tests/c/`，Python 测试统一放 `tests/python/`（已落地，2026-09）。`theory/*/verify/` 保留为推导附属脚本，正式 CI 以 `tests/` 为准。
-- 命题对应注释固定引用编号（`P1/P2/...`），2-ulp 阈值用共享常量 `LUMA_ULP32 = 2^-23`，禁止在多处硬编码 `1.1920928955078125e-7`。
+- C 测试统一放 `tests/c/`，Python 测试统一放 `tests/python/`（已落地，2026-09）。正式产品 CI 以 `tests/` + ctest 为准。
+- 理论核验在 `theory/state-cache/verify/`：主入口 `verify-degeneration.py`（F1–F7）；`check_identity.py` 为旧恒等脚手架，非 F 门。
+- 产品 2-ulp / L5 注释引用 **L5**（或历史「重构+2-ulp」语义），阈值用共享常量 `LUMA_ULP32 = 2^-23`，禁止在多处硬编码 `1.1920928955078125e-7`。理论 F2/F6/F7 用各自绝对容差，不套用 2-ulp。
 
 ## 8. 注释规范（强制）
 

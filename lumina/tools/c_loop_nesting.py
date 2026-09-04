@@ -34,7 +34,7 @@ def scan_loops(body_lines: list[str]) -> tuple[int, int]:
 
 
 def max_loop_nesting(body_lines: list[str]) -> int:
-    """仅返回最大嵌套深度（1=仅单层；≥2 触犯 eng-standard）."""
+    """仅返回最大嵌套深度（1=仅单层；≥2 触犯 lumina-eng-skill）."""
     return scan_loops(body_lines)[0]
 
 

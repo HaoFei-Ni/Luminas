@@ -128,11 +128,11 @@ def main() -> None:
     is_pass, violations = validate_quality(file_metrics, function_metrics, config)
     generate_markdown_report(file_metrics, function_metrics, violations, config)
     score, grade = health_score(file_metrics, function_metrics, violations)
-    print(f"[INFO] 健康评分：{score}（等级 {grade}）；违规 {len(violations)} 项")
+    print(f"[INFO] health={score} grade={grade} findings={len(violations)}")
     if not is_pass:
-        print(f"\n❌ [QUALITY-GATE-FAIL] {config['report']['fail_text']}")
+        print(f"[FAIL] python-structure: {config['report']['fail_text']}")
         sys.exit(1)
-    print("✅ [QUALITY-GATE-PASS] 全部质量校验通过")
+    print("[PASS] python-structure")
     sys.exit(0)
 
 

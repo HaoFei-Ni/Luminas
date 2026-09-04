@@ -1,20 +1,27 @@
-# lumina/research — 实验研究区（规划中）
+# lumina/research — 实验研究区
 
-> research-skill 约定：协议与官方案例的 **lab log** 放这里；标准只写在 `../docs/res/`；产物只归档到 `../experiments/`。
+| 字段 | 内容 |
+|:---|:---|
+| 状态 | 规划中 |
+| 权威技能 | `lumina-res-skill` |
 
-## 应放入本目录的内容
+标准与设计写在 `../docs/res/`；可复现产物归档在 `../experiments/`。本目录仅存放协议与官方案例的 **lab log**。
 
-- 实验协议锁定记录（lab log）：数据集/基线/hparams/GPU tier/seeds 在首跑前冻结
-- 三段式（算子 → 模型 PPL → 任务）的 Phase 报告草稿
-- 消融 / SOTA 对照运行记录（结论与数字以 `../experiments/EXP-*` 归档为准）
+## 应收纳
 
-## 不应放入
+- 套件锁定记录：数据集 / 基线 / hparams / GPU tier（S=4 / M=24 / L=80）/ seeds，首跑前冻结
+- Phase 报告草稿（算子 → 模型 PPL → 任务）
+- 消融 / SOTA 运行记录（结论数字以 `../experiments/EXP-*` 为准）
 
-- 实验产物数据与提交物 → `../experiments/`（同属 `lumina/`）
-- 论文排版 → `../paper/`（research-skill 约定，待建）
-- 方法推导 → `../theory/`
+## 不应收纳
 
-## 参考规则
+| 内容 | 去向 |
+|---|---|
+| 实验产物与提交物 | `../experiments/` |
+| 论文排版 | `../paper/`（约定目录） |
+| 方法推导 | `../theory/` |
 
-- n=5、seeds `{0,1,2,3,4}`、mean±std、绑定 commit（`research-skill`）
-- 未过三级门槛前称 candidate lossless path（`LUM-RES-001`）
+## 规则摘要
+
+- n = 5，seeds `{0,1,2,3,4}`，mean ± std，绑定 commit（`lumina-res-skill`）
+- 未过三级门前写作 **candidate lossless path**（`LUM-RES-001`）

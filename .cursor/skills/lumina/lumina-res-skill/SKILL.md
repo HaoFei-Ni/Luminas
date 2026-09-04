@@ -1,31 +1,33 @@
 ---
-name: research-skill
+name: lumina-res-skill
 description: >-
   Enforces Luminas experiment design, the canonical three-level lossless KV
   definition, ablation and SOTA matrices, and reproducibility rules for
   paper-grade results. Use when designing experiments, running ablations,
   claiming lossless or 无损 compression, reporting PPL, RULER, MMLU, or LongBench,
   or drafting paper sections. Triggers: ablation, PPL, lossless, 无损, 消融, 实验,
-  论文. Do not use for kernel coding standards, CMake, or choosing GPTQ/AWQ/HQQ
-  as the Luminas implementation.
+  论文. Do not use for kernel coding standards, CMake, coverage, or choosing
+  GPTQ/AWQ/HQQ as the Luminas product path.
 metadata:
-  version: "3.0.0"
+  version: "3.1.0"
   owner: luminas
-  layer: research
+  domain: res
+  doc_prefix: LUM-RES
 ---
 
-# Luminas Research Standard
+# Luminas Research
 
-This skill owns experiment design, the **only** definition of "lossless", statistics, and paper skeleton. Coding mechanics live in `eng-standard-skill`. Architecture identity lives in `luminas-arch-skill`.
+Owns experiment design, the **only** definition of “lossless”, statistics, and paper skeleton.
+Coding mechanics live in `lumina-eng-skill`. Architecture identity lives in `lumina-arc-skill`.
 
 ## Priority
 
-1. `luminas-arch-skill` — do not change the thesis or implement forbidden paths
-2. `eng-standard-skill` — kernels must already pass L1/L5 before model-level runs
-3. `research-skill` — this file
-4. Orchestra `ml-paper-writing` / `systems-paper-writing` / `academic-plotting` — prose, citations, figures **after** this skeleton
+1. `lumina-arc-skill` — do not change the thesis or implement forbidden paths
+2. `lumina-eng-skill` — kernels must already pass L1/L5 before model-level runs
+3. `lumina-res-skill` — this file
+4. Orchestra (`ml-paper-writing`, `systems-paper-writing`, `academic-plotting`) — prose, citations, figures **after** this skeleton
 
-Do not let `0-autoresearch-skill` pivot the question or replace `lumina/` with a generic `src/` `experiments/` tree. Orchestra routing is in `luminas-arch-skill` (`references/orchestra-boundary.md`).
+Do not let `0-autoresearch-skill` pivot the question or replace `lumina/` with a generic `src/` / `experiments/` tree. Orchestra routing: `lumina-arc-skill` → [references/orchestra-boundary.md](../lumina-arc-skill/references/orchestra-boundary.md).
 
 ## When to use
 
@@ -33,14 +35,14 @@ Protocol design, official runs, claiming lossless, writing results or paper sect
 
 ## Do not use
 
-- Kernel style, coverage, CMake → `eng-standard-skill`
-- "Should we just quantize?" → reject via `luminas-arch-skill`
+- Kernel style, coverage, CMake → `lumina-eng-skill`
+- “Should we just quantize?” → reject via `lumina-arc-skill`
 
 ## Canonical lossless definition
 
-A method may be called **无损 / lossless** only if **all three** levels pass on the locked suite in [references/experiment-matrix.md](references/experiment-matrix.md). Until then: "candidate lossless path".
+A method may be called **无损 / lossless** only if **all three** levels pass on the locked suite in [references/experiment-matrix.md](references/experiment-matrix.md). Until then: **candidate lossless path**.
 
-Do not write "zero degradation" or "bit-exact with the baseline network".
+Do not write “zero degradation” or “bit-exact with the baseline network”.
 
 ### Level 1 — numeric
 
@@ -54,8 +56,8 @@ Same 2-ulp rule as engineering L5:
 
 ### Level 2 — model (PPL)
 
-- Primary: WikiText-2 test, stride 512, identical harness and context as uncompressed baseline
-- `ΔPPL = mean(PPL_method) - mean(PPL_baseline)` over n=5 seeds `{0,1,2,3,4}`
+- Primary: WikiText-2 test, stride 512, identical harness and context as the uncompressed baseline
+- `ΔPPL = mean(PPL_method) - mean(PPL_baseline)` over n = 5 seeds `{0,1,2,3,4}`
 - Pass: `ΔPPL ≤ 0.01` **and** two-sided Wilcoxon signed-rank on paired per-document NLL gives `p > 0.05` **and** `|Cohen's d| < 0.2`
 
 ### Level 3 — task
@@ -63,22 +65,22 @@ Same 2-ulp rule as engineering L5:
 - Core: MMLU 5-shot and the locked LongBench subset; long-context: RULER and NIAH at 4k and 32k (128k when claiming ultra-long)
 - Pass: each core score drops by **≤ 1.0 percentage point** vs baseline **and** RULER/NIAH difference is non-significant (`p > 0.05`) with absolute drop ≤ 1.0 point
 
-If any level fails, the paper must say where the lossless region ends (ratio or length).
+If any level fails, the paper must state where the lossless region ends (ratio or length).
 
 ## Statistics (single rule)
 
-- **n = 5** independent runs, seeds **`{0,1,2,3,4}`**. Deterministic kernel benches: 5 timed repeats after 2 warmup (see engineering L4).
+- **n = 5** independent runs, seeds **`{0,1,2,3,4}`**. Deterministic kernel benches: 5 timed repeats after 2 warmup (engineering L4).
 - Report **mean ± std**. No best-of-N.
 - Normality: Shapiro–Wilk. Variance: Levene. If both pass → Welch t-test; else Wilcoxon / Mann–Whitney.
 - Claiming **A beats B**: `p < 0.05` **and** `|Cohen's d| ≥ 0.5`.
-- Claiming **equivalence / lossless**: the Level 2 / Level 3 rules above, not `p < 0.05`.
+- Claiming **equivalence / lossless**: Level 2 / Level 3 rules above — not `p < 0.05` alone.
 
 ## Experiment design
 
 1. **One variable per cell.** Same seeds, hparams, harness, GPU tier.
-2. **Three controls:** uncompressed baseline; ≥3 SOTA methods from ≥2 classes; negative (novel module removed, equal param count). Defaults in [references/experiment-matrix.md](references/experiment-matrix.md).
+2. **Three controls:** uncompressed baseline; ≥ 3 SOTA methods from ≥ 2 classes; negative (novel module removed, equal param count). Defaults in [references/experiment-matrix.md](references/experiment-matrix.md).
 3. **Phase order:** operator (must pass engineering L1/L5 and roofline ≥ 70% of the stated bound) → model PPL → task. Do not start Phase 2 if Phase 1 fails.
-4. Operator complexity check: measured FLOP and peak bytes within **5%** of the paper formula, or the formula is wrong.
+4. Operator complexity: measured FLOP and peak bytes within **5%** of the paper formula, or the formula is wrong.
 
 ## Execution order
 
@@ -97,6 +99,15 @@ Disclose GPU model/count, driver, CUDA, compiler, OS, every hparam, dataset name
 ## Paper
 
 Skeleton and venue routing: [references/paper-structure.md](references/paper-structure.md). Fill it before applying Orchestra writing skills. `academic-plotting` must keep error bars.
+
+## Related documents
+
+| Doc | Role |
+|---|---|
+| `lumina/docs/res/LUM-RES-001` | Research overview / lossless gate |
+| `lumina/docs/res/LUM-RES-101` | Ablation design |
+| `lumina/docs/res/LUM-RES-201` | Datasets |
+| `lumina/docs/res/LUM-RES-301` | Paper structure entry |
 
 ## Additional resources
 

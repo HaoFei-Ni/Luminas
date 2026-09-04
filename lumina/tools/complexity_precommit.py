@@ -35,7 +35,8 @@ def _staged_targets(argv: list[str]) -> list[str]:
 
     Pre-commit passes paths relative to the git root (``lumina/...``). This
     entrypoint runs with cwd ``lumina/``, so strip the leading ``lumina/`` when
-    needed and resolve to existing files.
+    needed and resolve to existing files. Theory scripts are F1–F7 only and are
+    excluded from the product cognitive-complexity hook.
     """
     if not argv:
         config_path = _LUMINA_DIR / "quality-gate.toml"
@@ -43,7 +44,22 @@ def _staged_targets(argv: list[str]) -> list[str]:
             data: Dict[str, Any] = tomllib.load(handle)
         roots = data["scan"]["include_paths"]
         return [str(_LUMINA_DIR / root) for root in roots]
-    return [str(_normalize_staged(raw)) for raw in argv]
+    # 必须跳过 theory/：产品认知复杂度钩子不得误伤 F1–F7 核验脚本。
+    targets: list[str] = []
+    for raw in argv:
+        path = _normalize_staged(raw)
+        if not _is_theory(path):
+            targets.append(str(path))
+    return targets
+
+
+def _is_theory(path: Path) -> bool:
+    """Return True when ``path`` lives under ``lumina/theory/``."""
+    try:
+        path.resolve().relative_to(_LUMINA_DIR / "theory")
+    except ValueError:
+        return False
+    return True
 
 
 def _normalize_staged(path_str: str) -> Path:
@@ -92,9 +108,9 @@ def main() -> int:
     for file_key, name, value in excess:
         print(f"[COMPLEXITY] {file_key}::{name} = {value} (> {threshold})")
     if excess:
-        print(f"❌ [COMPLEXITY-FAIL] {len(excess)} 个函数认知复杂度超限（阈值 {threshold}）")
+        print(f"[FAIL] complexity: {len(excess)} functions above {threshold}")
         return 1
-    print(f"✅ [COMPLEXITY-PASS] 认知复杂度全部 ≤ {threshold}")
+    print(f"[PASS] complexity ≤ {threshold}")
     return 0
 
 

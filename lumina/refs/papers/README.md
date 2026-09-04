@@ -2,7 +2,7 @@
 
 按领域归档。当前为空（待建）。
 
-建议目录（按 `research-skill` / `luminas-arch-skill` 引用面）：
+建议目录（按 `lumina-res-skill` / `lumina-arc-skill` 引用面）：
 
 - `kv-compression/` — 无损/有损 KV 压缩、量化类基线（KIVI、KVQuant、GPTQ/AWQ 作对照）
 - `eviction-sparse/` — H2O、SnapKV、StreamingLLM（驱逐类 SOTA 对照）
@@ -22,4 +22,4 @@ Luminas 角色：baseline | reference idea | read-only study | …
 
 ## 约束
 
-- 复制上游代码进 `lumina/` 是被禁止的（见 `luminas-arch-skill/references/non-goals.md`）；`papers/` 仅存资料。
+- 复制上游代码进 `lumina/` 是被禁止的（见 `lumina-arc-skill/references/non-goals.md`）；`papers/` 仅存资料。

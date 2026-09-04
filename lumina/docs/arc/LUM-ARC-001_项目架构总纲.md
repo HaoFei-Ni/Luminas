@@ -1,45 +1,49 @@
 # LUM-ARC-001 项目架构总纲
 
-- 状态：**骨架（待评审）**
-- 关联：`luminas-arch-skill` · `LUM-ARC-101` · `non-goals.md`
-- 对应 skill：`.cursor/skills/lumina/luminas-arch-skill/SKILL.md`（本域所有 `LUM-ARC-*` 同源）
+| 字段 | 内容 |
+|:---|:---|
+| 状态 | 草案 |
+| 版本 | 1.1 |
+| 日期 | 2026-09-05 |
+| 权威技能 | `lumina-arc-skill` |
+| 关联文档 | `LUM-ARC-101` · `LUM-ARC-201` · `LUM-ARC-301` · `non-goals.md` |
 
-## 裁决与文档归属
+## 1. 目的
 
-- 分层唯一裁决点：`../arc/LUM-ARC-101`；四层/三层之争在此收敛，其余 `LUM-ARC-*` 只扩展、不另立模型。
-- 文档所在：`lumina/docs/arc/`（自本文件向上两级即 `lumina/` 内容区）。
+规定 Luminas 的身份、源码隔离、分层原则与非目标摘要。派生 `LUM-ARC-*` 文档只扩展本总纲，不得另立身份或平行分层模型。
 
-## 身份
+## 2. 身份
 
-Luminas 是 **原创架构项目**：一套新的无损 KV-cache 压缩机制——不是量化、剪枝、驱逐或低秩近似。仓库内 SpikingBrain2.0 等上游树为**只读技术参考**，非 fork 目标。
+Luminas 为**原创架构项目**：目标是一套新的无损 KV-cache 压缩机制。产品路径不是量化、剪枝、驱逐或低秩近似。仓库内 SpikingBrain2.0 及相关上游树为**只读技术参考**，非 fork 目标。
 
-## 核心主张
+## 3. 核心主张
 
-- 无损 = 通过 `research-skill` 三级门槛后才可声称（numeric → model PPL → task）。通过前一律称 **candidate lossless path**，报告真实数字。
-- 长上下文是原生 cache + hybrid attention 设计的属性，不靠 RoPE/YaRN/ALiBi 扩展等外部机制。
+1. **无损声明**：仅当通过 `lumina-res-skill` 三级门槛（数值 → 模型 PPL → 任务）后方可称为无损。通过前一律写作 **candidate lossless path**，并报告实测数字。
+2. **长上下文**：由原生 cache 与 hybrid attention 设计承载；不以 RoPE / YaRN / ALiBi 等位置插值作为长上下文故事的主结论。
+3. **实现归属**：平台无关压缩数学不得进入 Python 或绑定层；原创实现仅落于 `lumina/`。
 
-## 分层总纲
+## 4. 分层总纲
 
-物理分层（algorithm / kernel / wrapper 三层目录 vs Kernel / Binding / Scheduler / Infra 四层职责）的唯一裁决点是 **LUM-ARC-101**。本总纲只锁定原则：
+职责视图（Kernel / Binding / Scheduler / Infra）与物理目录视图（`algorithm/` / `kernel/` / `wrapper/`）的唯一裁决点为 **LUM-ARC-101**。本总纲只锁定：
 
-- `lumina/` 是唯一原创代码目录（见 "源码隔离"）。
-- 平台无关的压缩数学不进 Python、不进绑定层。
+- `lumina/` 为唯一原创代码区；
+- 两视图正交并存，禁止绕开裁决自定归属。
 
-## 源码隔离
+## 5. 源码隔离
 
-- 原创代码一律落 `lumina/`。
-- `spb2/`、`spb2vl/`、`spb2_vllm/`、`MoBA/`、`flash-linear-attention_dev/`、`run_model/`：**只读参考**。
-- 禁止"就地补丁上游使其成为 Luminas"；禁止把其符号混入 `luma_*` 库。
-- 引用的 SOTA / 基线与负面控制（量化、驱逐、低秩）只作为实验对照，见 `LUM-RES-101`。
+- 原创代码一律写入 `lumina/`。
+- 下列路径为只读参考：`spb2/`、`spb2vl/`、`spb2_vllm/`、`MoBA/`、`flash-linear-attention_dev/`、`run_model/`。
+- 禁止就地补丁上游以「成为 Luminas」；禁止将其符号混入 `luma_*` 库。
+- 量化 / 驱逐 / 低秩等方法仅作实验对照（见 `LUM-RES-101`），不得作为产品路径。
 
-## 非目标（摘要）
+## 6. 非目标（摘要）
 
-完整拒绝清单见技能 `references/non-goals.md`。摘要：
+完整拒绝清单见 `lumina-arc-skill/references/non-goals.md`。摘要：
 
-- 不以 GPTQ/AWQ/HQQ/量化/剪枝/低秩作为产品路径。
-- 不把 `flash-attn`、官方 Mamba 当作 Luminas 本体。
-- 不以"zero degradation / bit-exact with FP16"写作 lossless 结论。
+- 不以 GPTQ / AWQ / HQQ / 剪枝 / 低秩作为产品压缩路径；
+- 不以 `flash-attn` 或官方 Mamba 作为 Luminas 本体；
+- 不以 “zero degradation” / “bit-exact with FP16” 作为无损结论用语。
 
-## 里程碑挂靠
+## 7. 里程碑
 
-发布 / 里程碑 → `lumina/docs/pm/LUM-PM-001_项目版本与里程碑`。
+版本与里程碑见 `lumina/docs/pm/LUM-PM-001`。

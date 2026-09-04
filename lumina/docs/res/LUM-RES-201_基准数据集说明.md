@@ -1,15 +1,20 @@
 # LUM-RES-201 基准数据集说明
 
-- 状态：**计划（尚未撰写）**
-- 关联：`LUM-RES-001` · `research-skill`（`references/experiment-matrix.md` 的 datasets/length/ratio 段）
+| 字段 | 内容 |
+|:---|:---|
+| 状态 | 计划 |
+| 版本 | 0.1 |
+| 日期 | 2026-09-05 |
+| 权威技能 | `lumina-res-skill` |
+| 关联文档 | `LUM-RES-001` · `references/experiment-matrix.md` |
 
-## 计划覆盖内容
+## 1. 范围（待撰写正文）
 
-- 官方数据集清单与固定协议：WikiText-2 test、C4 validation slice（hash 固定）、RULER + NIAH、MMLU 5-shot + 声明 LongBench 子集
-- 数据获取方式、版本与 hash 固定要求
-- 与 `refs/` 的关系：论文与规范原文入 `lumina/refs/`，本文件只写"Luminas 用哪个、怎么用、门槛是什么"
+1. 官方数据集清单与固定协议：WikiText-2 test、C4 validation slice（hash 固定）、RULER + NIAH、MMLU 5-shot + 声明的 LongBench 子集。
+2. 数据获取方式、版本与 hash 固定要求。
+3. 与 `lumina/refs/` 的关系：原文入 refs；本文件只规定「使用哪份、如何用、门槛为何」。
 
-## 约束
+## 2. 约束
 
-- 不在数据集上做 best-of-N；同 tokenizer/同 harness 才可比。
-- 报告多个长度，禁止单长度冒充长上下文结论。
+- 禁止在数据集上 best-of-N；同 tokenizer、同 harness 方可比较。
+- 须报告多个序列长度；禁止以单长度冒充长上下文结论。

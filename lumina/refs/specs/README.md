@@ -5,7 +5,7 @@
 建议条目：
 
 - CUDA C Programming Guide / Runtime API（随锁定 toolkit 版本）
-- IEEE 754（浮点；`eng-standard-skill` 的 2-ulp 数值门槛据此）
+- IEEE 754（浮点；`lumina-eng-skill` 的 2-ulp 数值门槛据此）
 - pybind11 / CMake 文档版本
 - Python 与 Rust 工具链版本（与 `uv.lock`、Cargo 锁一致）
 

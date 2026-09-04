@@ -53,12 +53,12 @@ suppress_health_check = false       # 强制开启健康检查，确保测试本
 persist_examples = true             # 与 derandomize 并存时：Hypothesis 禁 database，以固定种子为复现源
 
 # ------------------------------ Python 扫描范围 ------------------------------
-# 相对 lumina/；wrapper/ 为 C++/pybind，不进 Python 门禁
+# 相对 lumina/；wrapper/ 为 C++/pybind，不进 Python 门禁。
+# theory/ 属 F1–F7 理论轨道，结构阈值不适用，勿并入本扫描。
 [scan]
 include_paths = [
     "tools",
     "tests",
-    "theory",
 ]
 
 # ------------------------------ Python 阈值（5个9强制；存量须达标，禁止放宽） ------------------------------
@@ -100,17 +100,21 @@ enable_recursion_check = true
 enable_architecture_check = true
 enable_ha_check = true
 
-# ------------------------------ 报告 ------------------------------
+# ------------------------------ 报告（落盘 tests/reports/；gitignore） ------------------------------
+# complexipy.json：工具原始认知复杂度 feed（ci_quality_gate 输入）
+# quality-gate.md / .json：门禁裁决产物（人读 + CI 机读）
 [report]
-json_report_path = "complexipy-report.json"
-markdown_report_path = "complexipy-report.md"
-title = "代码复杂度质量报告"
-description = "校验维度：认知/圈复杂度、控制嵌套、文件/函数行数、自递归、架构、高可用（异常/全局态/空引用）"
+document_id = "LUM-QG-PY"
+json_report_path = "tests/reports/complexipy.json"
+markdown_report_path = "tests/reports/quality-gate.md"
+summary_json_path = "tests/reports/quality-gate.json"
+title = "Luminas Python 质量门禁 / Quality Gate"
+description = "控制项 / Controls：认知·圈复杂度、嵌套、文件/函数规模、自递归、架构（环/扇出/继承/克隆）、高可用（异常/全局态/空引用）。"
 show_full_detail = true
-violation_headers = ["检查对象", "问题类型", "当前值", "阈值上限"]
-function_headers = ["函数名称", "物理行数", "认知复杂度"]
-pass_text = "✅ 全部校验通过"
-fail_text = "❌ 质量门禁未通过，阻断提交/发布"
+violation_headers = ["目标 / Target", "问题 / Finding", "当前值 / Actual", "上限 / Limit"]
+function_headers = ["函数 / Function", "物理行数 / Physical lines", "认知复杂度 / Cognitive complexity"]
+pass_text = "通过 / PASS — 全部已启用控制项均在阈值内。"
+fail_text = "未通过 / FAIL — 质量门禁阻断；请修复后再合并/发布。"
 
 [exclusions]
 file_patterns = [".cache/**", "__pycache__/**"]

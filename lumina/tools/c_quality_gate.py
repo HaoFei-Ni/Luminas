@@ -76,14 +76,14 @@ def main() -> int:
         why_file_patterns=why_include_patterns(config),
     )
     violations = validate_c(files, functions, config)
-    print(f"[INFO] C 扫描文件 {len(files)}，函数 {len(functions)}，违规 {len(violations)}")
+    print(f"[INFO] c-structure files={len(files)} functions={len(functions)} findings={len(violations)}")
     # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for item in violations:
         print(f"  - {item['target']}: {item['issue']} {item['current']}>{item['limit']}")
     if violations:
-        print("❌ [C-QUALITY-GATE-FAIL] C/CUDA 结构度量未通过")
+        print("[FAIL] c-structure")
         return 1
-    print("✅ [C-QUALITY-GATE-PASS] C/CUDA 结构度量通过")
+    print("[PASS] c-structure")
     return 0
 
 

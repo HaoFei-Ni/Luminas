@@ -1,33 +1,29 @@
-# lumina/ — Luminas 唯一内容区（源码 + 文档 + 实验归档）
+# lumina/ — Luminas 唯一内容区
 
-`docs/`、`refs/`、`experiments/` 均收纳于此，不再存在于仓库根。
-分层裁决见 `docs/arc/LUM-ARC-101`。仓库级导航见根 `README.md`。
+源码、正式文档与实验归档均收纳于此。分层裁决：`docs/arc/LUM-ARC-101`。仓库导航：根目录 `README.md`。
 
-| 目录 | 职责 | 现状 |
+| 目录 | 职责 | 状态 |
 |---|---|---|
-| `algorithm/` | 平台无关 ANSI C 压缩/解压数学（纯逻辑） | 已启用（`luma_kv_ref.c` / `luma_kv_codec.c`） |
-| `kernel/` | C-ABI 头、CUDA/CPU 算子、有损基线 | 现有代码在此（C99 + baseline + CUDA） |
-| `wrapper/` | 对外 API / pybind 绑定 / 封装 | 已启用（`luma_bind_*.cpp`） |
-| `tools/` | Python + C 质量门禁与指标层（非算子） | `quality_metrics` / `c_quality_gate` / pre-commit 入口 |
-| `theory/` | 架构无关方法笔记、闭合框架、推导 | 现有（`state-cache/`） |
-| `research/` | 实验协议、lab log、官方案例运行 | **规划中（空）** |
-| `tests/` | C + Python 测试（`tests/c/` ctest、`tests/python/` pytest） | `test_luma_kv.c` / `test_luma_baseline.c` / `test_luma_kernels.py` |
-| `docs/` | 正式文档（LUM-* 编号归档：arc/eng/res/pm） | 骨架已建（2026-09） |
-| `refs/` | 外部参考文献与规范（papers/ specs/） | 骨架已建（2026-09） |
-| `experiments/` | 实验归档产物 `EXP-YYYYMMDD-XXX/` | 骨架已建（2026-09） |
+| `algorithm/` | 平台无关 ANSI C 压缩 / 解压数学 | 已启用 |
+| `kernel/` | C-ABI 头、CUDA / CPU 算子、有损基线 | 已启用 |
+| `wrapper/` | 对外 API / pybind 封装 | 已启用 |
+| `tools/` | 质量门禁与指标层（非算子） | 已启用 |
+| `theory/` | 表征坍缩统一理论（`state-cache/`：framework + F1–F7） | 已启用 |
+| `research/` | 实验协议与 lab log | 规划中 |
+| `tests/` | C（ctest）+ Python（pytest） | 已启用 |
+| `docs/` | 正式文档（arc / eng / res / pm × LUM-*） | 草案 / 生效并存 |
+| `refs/` | 外部参考文献与规范 | 骨架 |
+| `experiments/` | 实验归档 `EXP-YYYYMMDD-XXX/` | 骨架 |
 
-## 分层模型冲突收敛
+## 分层模型
 
-- 职责 4 层（Kernel/Binding/Scheduler/Infra）见 `luminas-arch-skill`。
-- 物理 3 层（algorithm/kernel/wrapper）见 `eng-standard-skill` 最高优先级章节。
-- **两者归属口径以 `docs/arc/LUM-ARC-101` 为唯一裁决点**；未裁决前新代码默认落现有 `kernel/`，不新建散目录。
-
-## 分层迁移记录（LUM-ARC-101 Phase A，2026-09 已执行）
-
-| 文件 | 迁移去向 | 说明 |
+| 视图 | 权威 | 内容 |
 |---|---|---|
-| `kernel/luma_kv_ref.c` / `kernel/luma_kv_cpu.c` | → `algorithm/`（现名 `luma_kv_ref.c` / `luma_kv_codec.c`） | 平台无关压缩参考/算法实现（C99） |
-| `kernel/luma_bind_native.cpp` / `kernel/luma_bind_cuda.cpp` | → `wrapper/` | pybind11 marshal，无数值算法 |
-| `kernel/baseline/*`、`kernel/luma_*kernels.h` | 留在 `kernel/` | 基线 / C-ABI 头 |
+| 职责四层 | `lumina-arc-skill` | Kernel → Binding → Scheduler → Infra |
+| 物理三层 | `lumina-eng-skill` | `algorithm/` → `kernel/` → `wrapper/` |
 
-> 迁移已全部落地（Phase A/B/C，2026-09）：统一构建入口为顶层 `lumina/CMakeLists.txt`（superproject），构建图拆为三层目标 `luma_algorithm` → `luma_cpu`/`luma_cuda` → `_luma_native`/`_luma_cuda`；`kernel/` 不再跨目录引用 `../algorithm/`、`../wrapper/` 源。详见 `docs/arc/LUM-ARC-101`。
+**归属口径以 `docs/arc/LUM-ARC-101` 为唯一裁决点。**
+
+## 迁移记录（摘要）
+
+Phase A/B/C（2026-09）已完成：算法 / 绑定迁出、头拆分、命名规范化、superproject 三层目标链。统一构建入口：`lumina/CMakeLists.txt`。细节见 `docs/arc/LUM-ARC-101`。

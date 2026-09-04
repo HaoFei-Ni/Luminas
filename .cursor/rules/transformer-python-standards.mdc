@@ -12,10 +12,10 @@ alwaysApply: true
 ## 优先级声明（最高优先级）
 
 > 本章节为 **Python / Transformer 模型代码** 的最高优先级工程规范，优先级高于所有外部技能与通用代码规则。
-> 与 `lumina/eng-standard-skill` 的「架构级代码强制标准（最高优先级）」**作用域互斥、不冲突**：
-> - `eng-standard-skill` 管辖 **C/C++/CUDA 三层正交分层**（`algorithm/` / `kernel/` / `wrapper/`）。
+> 与 `.cursor/skills/lumina/lumina-eng-skill` 的「架构级代码强制标准（最高优先级）」**作用域互斥、不冲突**：
+> - `lumina-eng-skill` 管辖 **C/C++/CUDA 三层正交分层**（`algorithm/` / `kernel/` / `wrapper/`）。
 > - 本规则管辖 **Python/Transformer 六层端口-适配器架构**。
-> 当同一文件/模块同时涉及时，以 **本规则（Python 侧）** 为准；数值语义、无损 KV 定义等业务约束仍以 Luminas 架构技能（`luminas-arch-skill` / `research-skill`）为唯一裁决点。
+> 当同一文件/模块同时涉及时，以 **本规则（Python 侧）** 为准；数值语义、无损 KV 定义等业务约束仍以 Luminas 架构技能（`lumina-arc-skill` / `lumina-res-skill`）为唯一裁决点。
 
 ---
 

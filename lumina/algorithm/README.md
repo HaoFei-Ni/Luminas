@@ -14,7 +14,7 @@
 
 ## 规则
 
-- 平台无关、纯 ANSI C；无系统 API、无 CUDA、无副作用、无全局状态（`eng-standard-skill` 最高优先级章节）。
+- 平台无关、纯 ANSI C；无系统 API、无 CUDA、无副作用、无全局状态（`lumina-eng-skill` 最高优先级章节）。
 - 头文件仅接口声明；`.h` ≤ 300 行、`.c` ≤ 500 行、函数 ≤ 80 行。
 - 本层源只 include 本层契约头 `luma_kv.h`；不得 include `../kernel/` 或 `../wrapper/` 头（Phase B 已消除反向依赖）。
 - 构建统一走顶层 `lumina/CMakeLists.txt`（superproject）；本层仅产出 `luma_algorithm`，不直接产可执行/绑定。

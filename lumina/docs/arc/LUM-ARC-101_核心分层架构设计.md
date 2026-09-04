@@ -1,19 +1,24 @@
 # LUM-ARC-101 核心分层架构设计
 
-- 状态：**v1（已生效，2026-09-04）— 本文件是"四层职责"与"三层物理目录"冲突的唯一裁决点**
-- 关联：`LUM-ARC-001` · `luminas-arch-skill` · `eng-standard-skill`（最高优先级章节）
+| 字段 | 内容 |
+|:---|:---|
+| 状态 | 生效 |
+| 版本 | 1.1 |
+| 日期 | 2026-09-05 |
+| 权威技能 | `lumina-arc-skill` · `lumina-eng-skill` |
+| 关联文档 | `LUM-ARC-001` |
+| 说明 | 职责四层与物理三层冲突的**唯一裁决点** |
 
-## 背景：两套模型并存
+## 1. 背景：两套模型并存
 
-仓库存在两套被不同技能引用的分层模型，本文件负责收敛，禁止任何新代码/新目录绕开本裁决自定归属：
+仓库存在两套被不同技能引用的分层模型。本文件负责收敛；禁止任何新代码或新目录绕开本裁决自定归属。
 
 | 视图 | 来源 | 内容 |
 |---|---|---|
-| 职责视图（4 层） | `luminas-arch-skill`（拥有 source tree） | Kernel → Binding → Scheduler → Infra |
-| 物理目录视图（3 层） | `eng-standard-skill` 最高优先级章节 | `algorithm/` → `kernel/` → `wrapper/` |
+| 职责视图（4 层） | `lumina-arc-skill` | Kernel → Binding → Scheduler → Infra |
+| 物理目录视图（3 层） | `lumina-eng-skill` | `algorithm/` → `kernel/` → `wrapper/` |
 
-## 裁决原则（v1 生效）
-
+## 2. 裁决原则（生效）
 1. **两者不是同一分类轴**：4 层回答"谁做什么职责"；3 层回答"代码放哪个物理目录"。任何层必须同时满足两个视图：职责看 4 层、落位看 3 层目录。
 2. **物理目录语义**：
    - `lumina/algorithm/` — 平台无关 ANSI C 压缩/解压数学（纯逻辑、无系统 API、无 CUDA、无副作用、无全局状态）。
@@ -64,4 +69,4 @@
 - [x] 冻结 `algorithm/`、`wrapper/` 首批文件清单（Phase A）
 - [x] 迁移并同步 CMake / README（Phase A）
 - [x] Phase B 头拆分（`luma_kv.h` / `luma_status.c` 归 `algorithm/`；ctest 验证待可构建环境）
-- [ ] 三技能 owner 终审本 v1（arch / eng / research 已隐含认可，正式签字记录留痕）
+- [ ] 三技能 owner 终审本文件（`lumina-arc-skill` / `lumina-eng-skill` / `lumina-res-skill`；正式签字记录留痕）

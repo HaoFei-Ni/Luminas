@@ -1,4 +1,4 @@
-"""Unit tests for eng-standard L4 benchmark protocol (highest tier)."""
+"""Unit tests for lumina-eng-skill L4 benchmark protocol (highest tier)."""
 
 from __future__ import annotations
 

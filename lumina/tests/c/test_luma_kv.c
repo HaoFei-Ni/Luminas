@@ -1,7 +1,8 @@
 /* test_luma_kv.c — 产品路径 L1 / L2 / L5。
  *
- * L5：decode(encode(S_f32)) 与 FP64 预言机 luma_kv_ref_copy_f64 对照 2-ulp（P2）。
- * 通过本测试 ≠ 论文无损：P3 与模型/任务门仍待归档。
+ * L5：decode(encode(S_f32)) 与 FP64 预言机 luma_kv_ref_copy_f64 对照 2-ulp。
+ * 通过本测试 ≠ 论文无损：lumina-res-skill 三级门仍待归档。
+ * 理论 F1–F7（表征坍缩）在 theory/state-cache/verify/，与本文件无关。
  */
 #include "luma_kernel.h"
 

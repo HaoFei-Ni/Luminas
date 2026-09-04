@@ -71,6 +71,7 @@ def run_complexipy(targets: list[str], output_path: Path) -> None:
     """Run a complexipy JSON scan over ``targets`` (paths relative to cwd)."""
     cache_cwd = prepare_complexipy_cwd()
     report = output_path.resolve()
+    report.parent.mkdir(parents=True, exist_ok=True)
     command = [
         str(venv_executable("complexipy")),
         "--output-format=json",

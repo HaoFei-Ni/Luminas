@@ -1,4 +1,4 @@
-"""eng-standard L4 性能测试协议（最高档，固定口径）.
+"""lumina-eng-skill L4 性能测试协议（最高档，固定口径）.
 
 test-matrix：2 warmup + 5 timed；报告 mean±std；禁止 best-of-N。
 回归：相对基线延迟升高不得超过 ``max_ratio``（默认 2%）。

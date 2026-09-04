@@ -112,16 +112,16 @@ def main() -> int:
     try:
         violations = perf_violations(config)
     except Exception as exc:  # noqa: BLE001 — 门禁入口需把协议错误打成失败
-        print(f"❌ [PERF-GATE-FAIL] {exc}")
+        print(f"[FAIL] perf-l4: {exc}")
         return 1
-    print(f"[INFO] 性能扫描违规 {len(violations)}")
+    print(f"[INFO] perf-l4 findings={len(violations)}")
     # 单遍：逐条输出便于 CI 定位。
     for item in violations:
         print(f"  - {item['target']}: {item['issue']}")
     if violations:
-        print("❌ [PERF-GATE-FAIL] L4 性能门禁未通过")
+        print("[FAIL] perf-l4")
         return 1
-    print("✅ [PERF-GATE-PASS] L4 性能门禁通过")
+    print("[PASS] perf-l4")
     return 0
 
 
