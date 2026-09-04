@@ -1,5 +1,6 @@
 /* luma_bind_native.cpp — 产品路径 pybind 胶水（仅 luma_kv_*）。
  *
+ * 工程 L5：只 marshal / 校验 / 异常映射；数值契约在 algorithm（2-ulp / bit-exact）。
  * 允许：dtype/连续性检查、缓冲分配、GIL 释放、错误码→异常。
  * 禁止：量化、SVD、CUDA、任何有损基线。有损基线见 _luma_baseline。
  */

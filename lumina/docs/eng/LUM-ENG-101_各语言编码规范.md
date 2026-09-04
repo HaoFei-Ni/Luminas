@@ -112,9 +112,15 @@
 
 门禁：`quality-gate.toml` `[comment_standard]` 由 `tools.checks.native.gate` / `tools.reporting.python_gate` **强制接线**：
 文件 banner、函数/声明前置文档、复杂语句行内注释（循环 / `__syncthreads` / `frexp`/`ldexp`/`exp2f`/`floor(log2)`；Python 为 `for`/`while` + `#`）。
-- **L0**（默认存在性）：邻接有注释即过。
-- **L4**（`require_why_semantics`）：邻接注释须命中 why 线索词，且不得是 what 模板句；默认 `why_include_file_patterns = ["**"]`（全生产路径最高档）。
+
+| 档位 | 配置要点 | 裁决 |
+|---|---|---|
+| **L0** | 邻接有注释即过 | 存在性 |
+| **L4** | `require_why_semantics`：邻接注释须命中 why 线索，且不得是 what 模板句 | why 语义 |
+| **L5**（工业最高档，现行） | `level = "L5"`：L4 全开且不可降级；`require_numeric_contract_banner` 要求产品核心路径（`algorithm/luma_kv*` · `wrapper/luma_bind_native.cpp`）文件头含 L5/2-ulp/bit-exact/有限等数值契约线索 | 无损核心强制 |
+
 - **L2 扩模式**：另检 `__shared__` / `atomic*` 等。
+- 默认 `why_include_file_patterns = ["**"]`（全生产路径）。
 
 ## 8.1 命名门禁（专业最高档，强制）
 

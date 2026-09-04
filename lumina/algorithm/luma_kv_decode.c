@@ -1,4 +1,8 @@
-/* luma_kv_decode.c — 产品 Dec（KV-ENC-CANDIDATE-1 精确 f32 RLE）。 */
+/* luma_kv_decode.c — 产品 Dec（KV-ENC-CANDIDATE-1 精确 f32 RLE）。
+ *
+ * 工程 L5 / bit-exact：展开后长度必须等于 n；有限码流上与 Enc 互逆。
+ * 非目标：有损近似解码。
+ */
 #include "luma_kv.h"
 #include <math.h>
 

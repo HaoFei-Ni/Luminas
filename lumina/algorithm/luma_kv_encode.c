@@ -1,4 +1,8 @@
-/* luma_kv_encode.c — 产品 Enc（KV-ENC-CANDIDATE-1 精确 f32 RLE）。 */
+/* luma_kv_encode.c — 产品 Enc（KV-ENC-CANDIDATE-1 精确 f32 RLE）。
+ *
+ * 工程 L5 / bit-exact：有限输入上重构与源逐元一致；对照预言机过 2-ulp。
+ * 非目标：量化 / SVD / 驱逐（有损基线见 kernel/baseline）。
+ */
 #include "luma_kv.h"
 #include <string.h>
 

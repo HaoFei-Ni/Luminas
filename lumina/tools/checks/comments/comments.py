@@ -6,6 +6,7 @@ LUM-ENG-101 §8：循环、同步点、关键数值原语行须有贴身 why 注
 档位：
 - L0（默认）：复杂行邻接有 ``//`` / ``#`` / 块注释即通过。
 - L4（``require_why=True``）：邻接注释须命中 why 线索，且不得是 what 模板句。
+- L5（``level="L5"``）：L4 全开且不可降级；另检产品核心文件头数值契约线索。
 """
 
 from __future__ import annotations

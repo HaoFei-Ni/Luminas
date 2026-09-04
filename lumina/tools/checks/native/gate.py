@@ -13,6 +13,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+from tools.checks.comments.level import comment_level_violations, numeric_contract_banner_violations
 from tools.checks.native.file_gate import doc_file_violations, file_structure_violations
 from tools.checks.native.function_gate import function_structure_violations
 from tools.checks.native.metrics import CFileMetrics, CFunctionMetrics, measure_c_files
@@ -43,7 +44,7 @@ def comment_features(config: dict[str, Any]) -> dict[str, Any]:
 
 
 def why_include_patterns(config: dict[str, Any]) -> list[str]:
-    """L4 作用路径；``require_why_semantics`` 关闭时返回空（仅 L0 存在性）."""
+    """Why-semantics paths (L4/L5); empty when ``require_why_semantics`` is off."""
     standard = config.get("comment_standard", {})
     if not standard.get("require_why_semantics", False):
         return []
@@ -55,9 +56,11 @@ def validate_c(
     functions: list[CFunctionMetrics],
     config: dict[str, Any],
 ) -> list[dict[str, str]]:
-    """汇总文件级、文档级、函数级违规记录."""
+    """汇总文件级、文档级、函数级、L5 注释档违规记录."""
     features = comment_features(config)
     violations: list[dict[str, str]] = []
+    violations.extend(comment_level_violations(config))
+    violations.extend(numeric_contract_banner_violations(files, config))
     violations.extend(file_structure_violations(files, config))
     violations.extend(doc_file_violations(files, features))
     violations.extend(function_structure_violations(functions, config, features))

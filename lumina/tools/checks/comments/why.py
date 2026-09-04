@@ -1,4 +1,4 @@
-"""L4 why-comment heuristics for complex-statement inline notes."""
+"""L4/L5 why-comment heuristics for complex-statement inline notes."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ _MIN_WHY_LEN = 2
 
 
 def is_why_comment(text: str) -> bool:
-    """Return True when comment text looks like a why-note (L4 heuristic)."""
+    """Return True when comment text looks like a why-note (L4/L5 heuristic)."""
     cleaned = _normalize_comment(text)
     if len(cleaned) < _MIN_WHY_LEN:
         return False

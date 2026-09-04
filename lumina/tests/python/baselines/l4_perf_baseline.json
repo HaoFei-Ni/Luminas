@@ -8,6 +8,6 @@
     "score_agg": "interleaved_median5"
   },
   "scores": {
-    "luma_kv_encode_decode_f32": 0.12291372490473064
+    "luma_kv_encode_decode_f32": 0.15408996063971794
   }
 }

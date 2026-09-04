@@ -102,6 +102,9 @@ function_names = ["main"]
 recursion_allowed_functions = []
 
 [comment_standard]
+# L5（工业最高档）= L0 邻接存在 ⊂ L4 why 线索 ⊂ 产品核心数值契约文件头
+# level=L5 时下列五开关必须为 true；禁止局部降级。
+level = "L5"
 require_file_banner = true
 require_function_doc = true
 require_header_decl_doc = true
@@ -109,6 +112,23 @@ require_inline_on_complex = true
 require_why_semantics = true
 inline_exclude_file_patterns = ["theory/**", "tests/**"]
 why_include_file_patterns = ["**"]
+# L5 核心：algorithm 产品路径 + 产品 bind 文件头须含数值契约线索
+require_numeric_contract_banner = true
+numeric_contract_file_patterns = [
+    "algorithm/luma_kv.h",
+    "algorithm/luma_kv_*.c",
+    "wrapper/luma_bind_native.cpp",
+]
+numeric_contract_markers = [
+    "L5",
+    "2-ulp",
+    "ulp",
+    "bit-exact",
+    "有限",
+    "无损",
+    "预言机",
+    "LUMA_ULP",
+]
 
 [naming_standard]
 enable = true
