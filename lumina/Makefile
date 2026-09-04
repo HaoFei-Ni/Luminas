@@ -1,6 +1,6 @@
 # Makefile — lumina Python 工具链本地入口
 # 缓存统一收敛至 .cache/（测试源码在 tests/）；命令经 uv run，保证与 pyproject 锁版一致。
-# 入口：make lint / make test / make test-ci / make all / make clean-cache
+# 入口：make lint / make test / make test-ci / make quality / make all / make clean-cache
 
 SHELL := /bin/bash
 CACHE_ROOT := ./.cache
@@ -12,7 +12,7 @@ export TORCH_HOME := $(CACHE_ROOT)/torch
 
 CACHE_SUBDIRS := ruff pytest mypy uv huggingface torch hypothesis
 
-.PHONY: all prep-cache lint test test-ci test-cov clean-cache help
+.PHONY: all prep-cache lint test test-ci test-cov quality clean-cache help
 
 all: prep-cache lint test
 
@@ -33,9 +33,13 @@ test: prep-cache
 test-ci: prep-cache
 	HYPOTHESIS_PROFILE=ci uv run pytest -n auto --junitxml=$(CACHE_ROOT)/pytest/junit.xml
 
-# 覆盖率（quality_metrics 公共面，fail_under 见 pyproject）
+# 覆盖率（tools.quality_metrics 公共面，fail_under 见 pyproject）
 test-cov: prep-cache
 	uv run pytest --cov --cov-report=term-missing --cov-report=xml:$(CACHE_ROOT)/pytest/coverage.xml
+
+# 全量四项质量门禁 + 健康度报告
+quality: prep-cache
+	uv run python -m tools.run_quality_gate
 
 clean-cache:
 	rm -rf $(CACHE_ROOT)/*
@@ -48,4 +52,5 @@ help:
 	@echo "  make test       pytest（本地默认）"
 	@echo "  make test-ci    pytest CI 档（-n auto + junit）"
 	@echo "  make test-cov   pytest + coverage"
+	@echo "  make quality    全量质量门禁"
 	@echo "  make clean-cache 清空 .cache/"

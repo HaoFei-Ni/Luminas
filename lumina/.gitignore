@@ -8,14 +8,17 @@
 
 # Python 字节码缓存
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
-# 工具缓存（pytest/mypy/ruff/hypothesis 统一收敛到 .cache/，见 pyproject.toml）
+# 工具缓存（统一收敛到 .cache/；额外兜底工具默认目录）
 # 注意：测试源码在 tests/，勿再建 test/ 目录
 .cache/
 .pytest_cache/
 .mypy_cache/
 .hypothesis/
+.ruff_cache/
+.complexipy_cache/
 
 # 质量门禁产物（complexipy JSON 原始报告 + Markdown 报告）
 complexipy-report.json

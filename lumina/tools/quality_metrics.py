@@ -2,8 +2,8 @@
 
 为两级质量门禁提供统一指标层，避免各入口重复实现与解析漂移：
 
-- ci_quality_gate.py（CI/手动：全量四项门禁，含 AST 行数统计 + 健康度报告）
-- complexity_precommit.py（提交前：认知复杂度强校验，仅扫本次暂存文件）
+- tools.ci_quality_gate（CI/手动：全量四项门禁，含 AST 行数统计 + 健康度报告）
+- tools.complexity_precommit（提交前：认知复杂度强校验，仅扫本次暂存文件）
 
 收敛三件事：
 1. complexipy JSON 多版本 schema 归一化：≤7 为按文件分组（file_path /

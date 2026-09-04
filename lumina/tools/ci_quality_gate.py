@@ -11,7 +11,7 @@
 4. 生成对齐行业结构的 Markdown 报告：代码健康度概览 + 违规汇总 + 全量明细。
 
 依赖扫描链（工作目录须为 lumina/）：
-    uv run complexipy && uv run python ci_quality_gate.py
+    uv run complexipy && uv run python -m tools.ci_quality_gate
 """
 
 from __future__ import annotations
@@ -22,8 +22,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-import quality_metrics
-from quality_metrics import FileMetrics, FunctionMetrics
+from tools import quality_metrics
+from tools.quality_metrics import FileMetrics, FunctionMetrics
 
 
 def load_config(config_path: str = "quality-gate.toml") -> Dict[str, Any]:
@@ -86,14 +86,12 @@ def validate_quality(
     return not violations, violations
 
 
-def _over_limit(enabled: bool, value: int, limit: int) -> bool:
-    """Return True when a check is enabled and the value exceeds its limit."""
-    return enabled and value > limit
+def _over_limit(enabled: bool, value: int | None, limit: int) -> bool:
+    """Return True when a check is enabled and a measured value exceeds its limit.
 
-
-def _complexity_over_limit(enabled: bool, complexity: int | None, limit: int) -> bool:
-    """Return True when complexity is measured, enabled, and above its limit."""
-    return enabled and complexity is not None and complexity > limit
+    ``value`` may be ``None`` for optional metrics (e.g. missing complexity).
+    """
+    return enabled and value is not None and value > limit
 
 
 def _file_level_violations(file_metrics: List[FileMetrics], config: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -153,11 +151,12 @@ def _function_level_violations(function_metrics: List[FunctionMetrics], config: 
                     thresholds["max_function_physical_lines"],
                 )
             )
-        if _complexity_over_limit(
+        if _over_limit(
             features["enable_cognitive_complexity_check"],
             func.complexity,
             thresholds["max_cognitive_complexity"],
         ):
+            # _over_limit already guarantees complexity is not None
             complexity = func.complexity
             if complexity is None:
                 raise RuntimeError("complexity missing after over-limit check")

@@ -1,12 +1,12 @@
 """Full quality-gate entry for CI and manual runs (not the pre-commit hook).
 
-工作目录无关：始终以 lumina/ 为根执行「complexipy 扫描 + ci_quality_gate.py」。
+工作目录无关：始终以 lumina/ 为根执行「complexipy 扫描 + tools.ci_quality_gate」。
 
 - complexipy 目标取 quality-gate.toml 的 [scan].include_paths，与门禁 AST
   扫描共用同一真值源，输出到 [report].json_report_path；
-- ci_quality_gate.py 读取同一 JSON，执行全量四项校验并产出健康度报告。
+- tools.ci_quality_gate 读取同一 JSON，执行全量四项校验并产出健康度报告。
 
-提交前的秒级认知复杂度校验走 complexity_precommit.py，勿改本文件用途。
+提交前的秒级认知复杂度校验走 tools.complexity_precommit，勿改本文件用途。
 """
 
 from __future__ import annotations
@@ -18,9 +18,9 @@ import tomllib
 from pathlib import Path
 from typing import Any, Dict
 
-import quality_metrics
+from tools import quality_metrics
 
-_LUMINA_DIR = Path(__file__).resolve().parent
+_LUMINA_DIR = Path(__file__).resolve().parents[1]
 
 
 def _load_config() -> Dict[str, Any]:
@@ -38,7 +38,8 @@ def main() -> int:
     report_path = Path(config["report"]["json_report_path"])
     quality_metrics.run_complexipy(targets, report_path)
     result = subprocess.run(  # noqa: S603
-        [sys.executable, "ci_quality_gate.py"], check=False
+        [sys.executable, "-m", "tools.ci_quality_gate"],
+        check=False,
     )
     return result.returncode
 

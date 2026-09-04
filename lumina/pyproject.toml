@@ -14,7 +14,8 @@
 #   uv run mypy .                          # 类型检查（含门禁脚本 + tests + theory）
 #   uv run pytest                          # Python 测试（纯 Python 必绿；原生扩展未构建时 skip）
 #   HYPOTHESIS_PROFILE=ci uv run pytest -n auto --junitxml=.cache/pytest/junit.xml
-#   uv run complexipy && uv run python ci_quality_gate.py   # 全量四项门禁 + 健康度报告
+#   uv run complexipy && uv run python -m tools.ci_quality_gate   # 全量四项门禁 + 健康度报告
+#   或：uv run python -m tools.run_quality_gate
 # 提交级秒级门禁（ruff/fmt/认知复杂度）由根 .pre-commit-config.yaml 统一执行
 #
 # 数值门限：以 lumina/tests/c/* 为准，Python 工程测试不授予 lossless 论文声明
@@ -43,7 +44,7 @@ dev = [
     "hypothesis==6.167.1",   # 模糊测试用例生成，覆盖边界与异常输入
     "mypy==2.3.1",           # 静态类型检查，强制公共 API 类型注解完整
     "ruff==0.16.6",          # 静态代码检查 + 自动格式化
-    "complexipy==8.0.0",     # 认知复杂度统计（JSON 输出为扁平逐函数 schema，见 quality_metrics.py）
+    "complexipy==8.0.0",     # 认知复杂度统计（JSON 输出为扁平逐函数 schema，见 tools/quality_metrics.py）
     "pre-commit==4.6.2",     # Git 提交前置钩子，代码提交前强制执行全套门禁
 ]
 
@@ -55,15 +56,15 @@ dev = [
 #
 # 分级门禁总览（分层解耦）：
 #   提交前（pre-commit，秒级）：ruff check --fix → ruff format → 认知复杂度强校验
-#     （complexity_precommit.py，仅扫本次暂存 lumina Python 文件）
+#     （tools.complexity_precommit，仅扫本次暂存 lumina Python 文件）
 #   全量质量门禁（CI/本地手动，含 AST 原生行数统计的四项校验 + Markdown 报告）：
 #     请执行根 .pre-commit-config.yaml 的等价流程或：
-#     uv run complexipy && uv run python ci_quality_gate.py
+#     uv run python -m tools.run_quality_gate
 # 所有命令均在 lumina 目录下执行：
 #   uv run ruff check .                                  # 仅 Ruff 静态代码规范检查
 #   uv run ruff check . --fix                            # Ruff 自动修复所有可自动修复项
 #   uv run ruff format .                                 # Ruff 全量格式化，仅改排版不改逻辑
-#   uv run complexipy && uv run python ci_quality_gate.py  # 全量四项门禁 + 健康度报告
+#   uv run python -m tools.run_quality_gate              # 全量四项门禁 + 健康度报告
 #   uv run pytest                                        # 本地默认：纯 Python 必绿；native/cuda 按需 skip
 #   uv run pytest -m "not native and not cuda"           # 仅纯 Python（无扩展环境）
 #   uv run pytest -m "native or l5"                      # 仅绑定/无损数值门（需先 cmake 构建）
@@ -130,12 +131,15 @@ markers = [
 # ==============================================================================
 [tool.coverage.run]
 branch = true
-# 当前公共可测面：质量指标层。门禁编排脚本（ci_quality_gate 等）随用例补齐后扩 source
-source = ["quality_metrics"]
+# 公共可测面：tools.quality_metrics。wrapper/ 为 C++/pybind，无 Python 模块可纳入 --cov
+source = ["tools.quality_metrics"]
 omit = [
     "tests/*",
     "theory/*",
     ".cache/*",
+    "tools/ci_quality_gate.py",
+    "tools/run_quality_gate.py",
+    "tools/complexity_precommit.py",
 ]
 
 [tool.coverage.report]
@@ -160,13 +164,10 @@ show_error_codes = true           # 输出错误码，便于定位与豁免
 warn_unused_configs = true        # 提示未使用的配置项，避免冗余配置
 warn_unused_ignores = true        # 提示未生效的忽略规则，清理无效豁免
 files = [
-    "quality_metrics.py",
-    "ci_quality_gate.py",
-    "complexity_precommit.py",
-    "run_quality_gate.py",
+    "tools",
     "tests",
     "theory",
-]  # 类型检查范围：门禁脚本 + 测试 + 理论脚本
+]  # 类型检查范围：门禁包 + 测试 + 理论脚本
 # 严格模式细化规则
 disallow_untyped_defs = true      # 禁止无类型注解的函数定义
 disallow_incomplete_defs = true   # 禁止类型注解不完整的函数
@@ -216,6 +217,8 @@ select = [
     "TCH",        # flake8-type-checking：类型提示检查，辅助 mypy 类型校验
     "ASYNC",      # async 异步代码最佳实践，识别异步常见错误
     "ERA",        # eradicate：检测并清理注释掉的废弃代码块，避免死代码入库
+    "INP",        # flake8-no-pep420：目录作包时须有 __init__.py（非 flake8-init；见下方 per-file）
+    "TID",        # flake8-tidy-imports：禁止跨层导入（banned-api），替代无效的 lint.override/ban-imports
 ]
 # 全局忽略规则
 ignore = [
@@ -233,20 +236,34 @@ ignore = [
 #   数学符号标识符直接镜像论文公式（N803/N806）、对照脚本内联魔法数值（PLR2004）；
 #   S101/S311：契约校验与显式播种的 Monte Carlo，非密码学场景
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["ANN001", "ANN201", "ANN401", "D100", "D103", "D403", "PLR2004", "S101", "S311"]
-"theory/**" = ["ANN001", "D100", "D103", "D205", "D212", "D415", "N803", "N806", "PLR2004", "S101", "S311"]
+# INP001：tests/theory 为 pytest/脚本树，刻意不用包 __init__.py；正式可导入包再建 __init__.py
+"tests/**" = ["ANN001", "ANN201", "ANN401", "D100", "D103", "D403", "INP001", "PLR2004", "S101", "S311"]
+"theory/**" = ["ANN001", "D100", "D103", "D205", "D212", "D415", "INP001", "N803", "N806", "PLR2004", "S101", "S311"]
 
 # ------------------------------ isort 导入排序配置 ------------------------------
 [tool.ruff.lint.isort]
-# 定义项目内部第一方包，导入分组顺序：标准库 → 第三方库 → 项目内部代码
-known-first-party = ["quality_metrics", "tests", "theory"]
+# 第一方模块：门禁脚本 + 验证树（wrapper/ 仅为 C++/pybind，无 Python 包名可声明）
+known-first-party = [
+    "tools",
+    "tests",
+    "theory",
+]
 force-single-line = false       # 不强制每个导入占一行，允许多行导入排版
 combine-as-imports = true       # 合并同模块的 as 导入，优化导入排版
 
+# ------------------------------ 分层依赖边界（TID251 banned-api） ------------------------------
+# ruff 0.16 无 [[lint.override]] / ban-imports / pylint.max-lines；跨层禁止用 TID 全局声明。
+# 门禁/胶水不得依赖验证树；分层行数阈值仍由 quality-gate.toml（AST）统一裁决。
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"tests" = { msg = "Do not import the tests tree from gate/production code (dependency must point downward)" }
+"theory" = { msg = "Do not import theory scripts from gate/production code (dependency must point downward)" }
+
 # ------------------------------ 命名规范配置 ------------------------------
+# 注意：ruff 0.16 pep8-naming 仅支持 ignore-names / decorators；
+# class-naming-style / function-naming-style / constant-naming-style 键不存在（会直接解析失败）。
 [tool.ruff.lint.pep8-naming]
-# 豁免命名校验的标识符：占位符、上下文对象、临时变量、循环索引
-ignore-names = ["_", "ctx", "tmp", "i", "j", "k"]
+# 豁免：通用占位 + 循环索引 + KV 压缩领域惯用缩写
+ignore-names = ["_", "ctx", "tmp", "i", "j", "k", "kv", "dim", "dtype", "seq", "err", "idx"]
 
 # ------------------------------ Docstring 文档字符串规范 ------------------------------
 # 规则集：D（pydocstyle）
@@ -279,9 +296,16 @@ max-returns = 6            # 函数 return/yield 返回点最大数量；过多�
 
 # ------------------------------ 废弃注释代码治理 ------------------------------
 # 规则集：ERA（eradicate）—— 禁止大段注释掉的死代码留在代码仓库。
-# 新版 ruff 已移除该规则的自定义阈值（whitelist-literals / max-eradicate-rate），
-# 使用内置默认配置即可：TODO/FIXME 等带说明性关键词的注释默认不会误判。
-# 如需治理参数，升级到支持 [tool.ruff.lint.flake8-eradicate] 的版本后再补充。
+# ruff 0.16 不存在 [tool.ruff.lint.eradicate] / [tool.ruff.lint.init] 配置表
+# （whitelist-literals / max-lines / init-imports 均会 TOML 解析失败）。
+# 使用内置默认：带 TODO/FIXME/NOTE 等说明性关键词的注释默认不误判。
+
+# ------------------------------ 未合入提案说明（避免再引入失效配置） ------------------------------
+# 1. [[tool.ruff.lint.override]] + ban-imports / pylint.max-lines：ruff 无此表；边界改用 TID251。
+# 2. [tool.uv.scripts]：uv 0.12.9 仍不支持（astral-sh/uv#5903）；快捷命令见文件头注释 / Makefile。
+# 3. pytest addopts 默认 --cov / cov_fail_under：本地默认应秒级可跑；覆盖率用
+#    `uv run pytest --cov`（fail_under 已在 [tool.coverage.report]）；wrapper/ 无 Python 源，勿 --cov=wrapper。
+# 4. [quality-gate.*] 勿写入本文件：真值源为 quality-gate.toml，避免双源漂移。
 
 # ------------------------------ Ruff 格式化配置（重点说明） ------------------------------
 # 功能：统一全项目代码排版风格，仅修改格式，绝对不改变代码逻辑
@@ -301,15 +325,20 @@ docstring-code-format = true   # 自动格式化 docstring 文档中的代码块
 
 # ==============================================================================
 # Complexipy 复杂度检测配置
-# 补齐 Ruff 缺失维度：认知复杂度；行数/函数数由 quality_metrics.py 以 AST
+# 补齐 Ruff 缺失维度：认知复杂度；行数/函数数由 tools.quality_metrics 以 AST
 # 独立测量（complexipy 8 不再输出行数）。质量门禁阈值以 quality-gate.toml 为准，
 # 此处为工具默认值。
 # ==============================================================================
 [tool.complexipy]
-paths = ["tests", "theory"]           # 扫描范围，须与 quality-gate.toml 的 [scan] include_paths 保持一致
+# 扫描范围须与 quality-gate.toml 的 [scan].include_paths 保持一致
+paths = [
+    "tools",
+    "tests",
+    "theory",
+]
 max-complexity-allowed = 15            # 认知复杂度工具默认阈值；最终生效以 quality-gate.toml 为准
-output-format = ["json"]               # 输出 JSON 供 ci_quality_gate.py / complexity_precommit.py 解析
+output-format = ["json"]               # 输出 JSON 供 tools.ci_quality_gate / complexity_precommit 解析
 output = "complexipy-report.json"      # 输出文件路径，与 quality-gate.toml 的 report.json_report_path 保持一致
-exclude = ["__pycache__"]              # 排除缓存目录；源码范围与 Ruff/Mypy 对齐（tests + theory）
+exclude = ["__pycache__", ".cache"]    # 排除缓存；源码范围与 Ruff/Mypy/门禁扫描对齐
 quiet = true                           # 静默模式，减少控制台冗余输出
 failed = false                         # 输出全部函数数据而非仅超限函数；是否判失败由门禁脚本按阈值决定

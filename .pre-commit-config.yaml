@@ -8,7 +8,7 @@
 #   提交前：ruff check --fix → ruff format → 认知复杂度（complexity_precommit.py，
 #     仅扫本次暂存的 lumina Python 文件，阈值取 quality-gate.toml）
 #   全量四项质量门禁（含 AST 原生行数统计）下沉到 CI/手动：
-#     uv run python lumina/run_quality_gate.py
+#     uv run --directory lumina python -m tools.run_quality_gate
 #
 # 说明：
 #   - 本仓库为多项目 monorepo（spb2*/MoBA 等只读上游 + lumina 原创区）。
@@ -16,8 +16,8 @@
 #     只扫描 lumina/ 原创区，绝不触碰上游只读树。
 #   - ruff 钩子 rev 与 lumina/pyproject.toml 精确锁定的 ruff 版本对齐，
 #     避免「提交钩子格式化结果 ≠ uv run ruff format」的分叉。
-#   - local 钩子 entry 均为 uv run + Python 脚本：不依赖 bash/PATH，Windows
-#     与 POSIX 行为一致（uv 定位并运行 lumina 项目环境）。
+#   - local 钩子 entry 均为 uv run + Python 模块：不依赖 bash/PATH，Windows
+#     与 POSIX 行为一致（--directory lumina 保证 cwd 与包导入正确）。
 # ==============================================================================
 repos:
   # Ruff 官方钩子：静态检查 + 自动修复 + 格式化（仅 lumina/ 文件）
@@ -38,7 +38,7 @@ repos:
       - id: cognitive-complexity
         name: 认知复杂度强校验 (lumina)
         language: system
-        entry: uv run --project lumina python lumina/complexity_precommit.py
+        entry: uv run --directory lumina python -m tools.complexity_precommit
         types: [ python ]
         files: ^lumina/
         stages: [ pre-commit ]

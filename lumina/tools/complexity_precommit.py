@@ -5,8 +5,8 @@
 取 quality-gate.toml 的单一真值源（max_cognitive_complexity）。超出即失败并
 阻断提交；不执行全量四项门禁（那些下沉到 CI/手动入口 ci_quality_gate.py）。
 
-被 pre-commit 以 ``uv run --project lumina python lumina/complexity_precommit.py``
-调用，argv 为暂存的 Python 文件路径（相对仓库根）。
+被 pre-commit 以 ``uv run --directory lumina python -m tools.complexity_precommit``
+调用，argv 为暂存的 Python 文件路径（相对仓库根或绝对路径）。
 """
 
 from __future__ import annotations
@@ -17,9 +17,9 @@ import tomllib
 from pathlib import Path
 from typing import Any, Dict
 
-import quality_metrics
+from tools import quality_metrics
 
-_LUMINA_DIR = Path(__file__).resolve().parent
+_LUMINA_DIR = Path(__file__).resolve().parents[1]
 
 
 def _load_threshold() -> int:
@@ -31,14 +31,34 @@ def _load_threshold() -> int:
 
 
 def _staged_targets(argv: list[str]) -> list[str]:
-    """Return staged python files from argv, or the configured scan roots."""
-    if argv:
-        return argv
-    config_path = _LUMINA_DIR / "quality-gate.toml"
-    with config_path.open("rb") as handle:
-        data: Dict[str, Any] = tomllib.load(handle)
-    roots = data["scan"]["include_paths"]
-    return [str(_LUMINA_DIR / root) for root in roots]
+    """Return staged python files from argv, or the configured scan roots.
+
+    Pre-commit passes paths relative to the git root (``lumina/...``). This
+    entrypoint runs with cwd ``lumina/``, so strip the leading ``lumina/`` when
+    needed and resolve to existing files.
+    """
+    if not argv:
+        config_path = _LUMINA_DIR / "quality-gate.toml"
+        with config_path.open("rb") as handle:
+            data: Dict[str, Any] = tomllib.load(handle)
+        roots = data["scan"]["include_paths"]
+        return [str(_LUMINA_DIR / root) for root in roots]
+    return [str(_normalize_staged(raw)) for raw in argv]
+
+
+def _normalize_staged(path_str: str) -> Path:
+    """Map a pre-commit path argument onto an existing file under lumina/."""
+    path = Path(path_str)
+    if path.is_file():
+        return path.resolve()
+    if path.parts[:1] == ("lumina",) and len(path.parts) > 1:
+        candidate = _LUMINA_DIR.joinpath(*path.parts[1:])
+        if candidate.is_file():
+            return candidate.resolve()
+    candidate = _LUMINA_DIR / path
+    if candidate.is_file():
+        return candidate.resolve()
+    return path
 
 
 def _report_excess(complexities: Dict[tuple[str, str], int], threshold: int) -> list[tuple[str, str, int]]:

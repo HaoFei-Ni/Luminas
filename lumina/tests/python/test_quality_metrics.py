@@ -13,7 +13,7 @@ from typing import Any
 import pytest
 from hypothesis import given, strategies as st
 
-import quality_metrics
+from tools import quality_metrics
 
 
 @pytest.mark.l1

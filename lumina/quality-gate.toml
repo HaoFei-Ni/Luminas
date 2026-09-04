@@ -1,18 +1,24 @@
 # ==============================================================================
 # 代码质量门禁配置文件（全量四项门禁的唯一真值源）
-# 执行器：ci_quality_gate.py（读取本文件 + complexipy JSON + AST 原生行数测量）
+# 执行器：tools.ci_quality_gate（读取本文件 + complexipy JSON + AST 原生行数测量）
 # 阈值 / 开关 / 行数口径 / 排除规则统一在此声明。工具侧仅保留最小镜像配置：
 #   - pyproject.toml 的 [tool.complexipy].paths 须与下方 [scan].include_paths
-#     保持一致（供手动裸跑 uv run complexipy 时使用；正式入口 run_quality_gate.py
-#     以 [scan].include_paths 为准显式传参）
-#   - ruff / mypy / complexipy 的源码扫描范围统一为 tests + theory
+#     保持一致（供手动裸跑 uv run complexipy 时使用；正式入口
+#     python -m tools.run_quality_gate 以 [scan].include_paths 为准显式传参）
+#   - ruff / mypy 扫描边界与 include_paths 对齐（tools + tests + theory）
+#   - 勿在 pyproject.toml 再写 [quality-gate.*] 副本，避免双源漂移
 # 修改门禁规则只需修改本文件，无需改动业务代码。
 # ==============================================================================
 
 # ------------------------------ 扫描范围（单一真值源） ------------------------------
 [scan]
 # 目录/文件均相对 lumina/ 解析；与 pyproject.toml [tool.complexipy].paths 保持一致
-include_paths = ["tests", "theory"]
+# wrapper/ 为 C++/pybind，不进 Python 门禁扫描
+include_paths = [
+    "tools",
+    "tests",
+    "theory",
+]
 
 # ------------------------------ 阈值配置 ------------------------------
 # 行业参考：
@@ -20,6 +26,7 @@ include_paths = ["tests", "theory"]
 #   单文件行数：≤200 优秀，≤400 可接受，>600 建议拆分
 #   单文件函数数：≤10 优秀，≤12 可接受，过多说明模块职责发散
 #   单函数行数：≤50 优秀，≤80 可接受，>100 建议拆分子函数
+# 说明：分层依赖边界由 ruff TID251 banned-api 强制；本门禁为扁平阈值。
 [thresholds]
 # 认知复杂度上限（SonarQube 同款指标，反映人脑理解负担）；提交前强校验同用此值
 max_cognitive_complexity = 15
@@ -39,7 +46,8 @@ count_blank_lines = false
 count_comment_lines = false
 
 # ------------------------------ 功能开关 ------------------------------
-# 每项校验可独立启用/禁用，灵活适配新项目/存量项目
+# 架构边界 / 重复率 / docstring / 性能反模式：由 ruff（TID/ERA/PERF/D）承担，
+# 本门禁专注行数 + 认知复杂度四项，避免与 ruff 重复造轮子。
 [features]
 enable_file_lines_check = true
 enable_function_count_check = true
@@ -68,10 +76,8 @@ pass_text = "✅ 全部校验通过"
 fail_text = "❌ 质量门禁未通过，阻断提交/发布"
 
 # ------------------------------ 排除规则 ------------------------------
-# 排除规则与 ruff / mypy / complexipy 对齐：工具只扫 tests + theory（见
-# pyproject.toml），因此此处默认不做文件级额外排除；确需豁免再按需追加。
 [exclusions]
 # 排除校验的文件路径模式（fnmatch，相对 lumina/，POSIX 风格）
-file_patterns = []
+file_patterns = [".cache/**", "__pycache__/**"]
 # 排除校验的函数名（如入口函数、样板代码）
 function_names = ["main"]

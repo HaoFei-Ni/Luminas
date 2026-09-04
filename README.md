@@ -13,6 +13,7 @@ lumina/                       源码与内容（唯一原创区）
   algorithm/                  纯算法层（ANSI C 压缩数学）
   kernel/                     CPU/CUDA 算子与基线（现有代码）
   wrapper/                    平台封装层（对外 API / 绑定）
+  tools/                      Python 质量门禁（非算子；pytest/ruff/mypy 入口）
   theory/  research/  tests/  方法笔记 / 实验协议 / 测试
   docs/                       正式文档（arc/eng/res/pm × LUM-*）
   refs/                       外部论文与规范
@@ -36,7 +37,9 @@ lumina/                       源码与内容（唯一原创区）
 ## 快速入口
 
 - 源码导航：[`lumina/README.md`](lumina/README.md)
-- 测试：`ctest --test-dir outputs/build/kernel`、`pytest -n auto lumina/tests`
+- C 测试（先构建）：`cmake -S lumina -B outputs/build/lumina && cmake --build outputs/build/lumina && ctest --test-dir outputs/build/lumina --output-on-failure`
+- Python 测试：`cd lumina && uv run pytest`
+- 全量质量门禁：`cd lumina && uv run python -m tools.run_quality_gate`
 - 门禁矩阵：`.cursor/skills/lumina/eng-standard-skill/references/test-matrix.md`
 - 非目标清单：`.cursor/skills/lumina/luminas-arch-skill/references/non-goals.md`
 
