@@ -11,7 +11,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# 工具缓存（统一收敛到 .cache/；额外兜底工具默认目录）
+# 工具缓存：真值源 quality-gate.toml [cache]（统一 root；下列根级名为误跑兜底）
 # 注意：测试源码在 tests/，勿再建 test/ 目录
 .cache/
 .pytest_cache/

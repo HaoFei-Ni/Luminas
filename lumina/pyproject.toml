@@ -72,10 +72,12 @@ dev = [
 # pytest 测试框架配置（工业级默认）
 # ==============================================================================
 # Hypothesis 属性测试的 settings 无法写进 pyproject：官方 pytest 插件不提供
-# hypothesis_* ini 键（HypothesisWorks/hypothesis#2434），只能经 register_profile
-# 声明 profile。项目级 profile（dev 本地 / ci 确定性）与示例库收敛策略见
-# tests/python/conftest.py；切换：HYPOTHESIS_PROFILE=ci 或 --hypothesis-profile ci。
+# hypothesis_* ini 键（HypothesisWorks/hypothesis#2434）。profile 数值真值源：
+# quality-gate.toml [hypothesis]；conftest 只加载。切换：HYPOTHESIS_PROFILE=ci。
 #
+# 统一缓存真值源：quality-gate.toml [cache]；下方 cache_dir / cache-dir 必须等于
+# ``{cache.root}/{cache.<tool>}``（工具原生键只能写在本文件，禁止在代码里再写一份）。
+
 # 设计约定：
 #   - 纯 Python 用例必须始终可跑、通过（无 _luma_* 扩展时 exit 0，禁止「全 skip」exit 5）
 #   - 依赖扩展的用例用 @pytest.mark.native / cuda + fixture importorskip，按测试跳过
@@ -86,7 +88,7 @@ testpaths = ["tests/python"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-cache_dir = ".cache/pytest"
+cache_dir = ".cache/pytest"  # 镜像 quality-gate.toml [cache] root/pytest
 # 扩展搜索路径：优先加载本地门禁脚本，再加载 CMake 构建输出的原生扩展
 # 目录不存在或扩展未构建时，fixture 内 pytest.importorskip 按测试 skip（非整模块）
 pythonpath = [
@@ -168,7 +170,7 @@ files = [
 disallow_untyped_defs = true      # 禁止无类型注解的函数定义
 disallow_incomplete_defs = true   # 禁止类型注解不完整的函数
 warn_return_any = true            # 警告返回值为 Any 类型，避免类型逃逸
-cache_dir = ".cache/mypy"
+cache_dir = ".cache/mypy"  # 镜像 quality-gate.toml [cache] root/mypy
 # 第三方库存根豁免，避免因缺失类型桩文件产生误报
 [[tool.mypy.overrides]]
 module = ["numpy.*"]
@@ -193,7 +195,7 @@ indent-width = 4                 # 缩进空格数，PEP8 官方标准 4 空格
 # 全局排除目录，所有 Ruff 能力统一生效；与 mypy/complexipy 的扫描边界保持一致
 # （均为运行缓存/编译产物，不含源码；源码范围对齐：tests + theory）
 exclude = ["__pycache__", "*.pyc"]
-cache-dir = ".cache/ruff"
+cache-dir = ".cache/ruff"  # 镜像 quality-gate.toml [cache] root/ruff
 
 # ------------------------------ Lint 规则集启用 ------------------------------
 [tool.ruff.lint]
@@ -233,8 +235,11 @@ ignore = [
 #   S101/S311：契约校验与显式播种的 Monte Carlo，非密码学场景
 [tool.ruff.lint.per-file-ignores]
 # INP001：tests/theory 为 pytest/脚本树，刻意不用包 __init__.py；正式可导入包再建 __init__.py
+# lumina/tests/**：pre-commit 在仓库根调用时路径带 lumina/ 前缀，须与 tests/** 同等豁免
 "tests/**" = ["ANN001", "ANN201", "ANN401", "D100", "D103", "D403", "INP001", "PLR2004", "S101", "S311"]
+"lumina/tests/**" = ["ANN001", "ANN201", "ANN401", "D100", "D103", "D403", "INP001", "PLR2004", "S101", "S311"]
 "theory/**" = ["ANN001", "D100", "D103", "D205", "D212", "D415", "INP001", "N803", "N806", "PLR2004", "S101", "S311"]
+"lumina/theory/**" = ["ANN001", "D100", "D103", "D205", "D212", "D415", "INP001", "N803", "N806", "PLR2004", "S101", "S311"]
 
 # ------------------------------ isort 导入排序配置 ------------------------------
 [tool.ruff.lint.isort]

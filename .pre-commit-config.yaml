@@ -24,12 +24,15 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.6
     hooks:
+      # --cache-dir 镜像 quality-gate.toml [cache]：lumina/{root}/{ruff}
+      # （ruff-pre-commit 不支持 hook.env；钩子 cwd=仓库根）。
       - id: ruff
         name: ruff-lint (lumina)
-        args: [ "--fix" ]
+        args: [ "--fix", "--config", "lumina/pyproject.toml", "--cache-dir", "lumina/.cache/ruff" ]
         files: ^lumina/
       - id: ruff-format
         name: ruff-format (lumina)
+        args: [ "--config", "lumina/pyproject.toml", "--cache-dir", "lumina/.cache/ruff" ]
         files: ^lumina/
 
   # 本地钩子：认知复杂度强校验（只处理本次暂存的 lumina Python 文件）

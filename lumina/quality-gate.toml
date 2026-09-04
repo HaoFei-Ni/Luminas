@@ -1,14 +1,47 @@
 # ==============================================================================
 # 代码质量门禁配置文件（全量门禁的唯一真值源）
 # 执行器：tools.ci_quality_gate / tools.c_quality_gate（经 tools.run_quality_gate）
-# 阈值 / 开关 / 行数口径 / 排除规则统一在此声明。工具侧仅保留最小镜像配置：
+# 阈值 / 开关 / 行数口径 / 排除规则 / 统一缓存路径 统一在此声明。工具侧仅保留最小镜像：
 #   - pyproject.toml 的 [tool.complexipy].paths 须与下方 [scan].include_paths
 #     保持一致（供手动裸跑 uv run complexipy 时使用；正式入口
 #     python -m tools.run_quality_gate 以 [scan].include_paths 为准显式传参）
-#   - ruff / mypy 扫描边界与 include_paths 对齐（tools + tests + theory）
-#   - 勿在 pyproject.toml 再写 [quality-gate.*] 副本，避免双源漂移
+#   - ruff / mypy / pytest 的 cache_dir 须等于 [cache].root / [cache].<tool>
+#   - 勿在 pyproject.toml 再写门禁阈值或缓存真值副本（cache_dir 仅为工具原生键镜像）
 # 修改门禁规则只需修改本文件，无需改动业务代码。
 # ==============================================================================
+
+# ------------------------------ 统一工具缓存（单一真值源） ------------------------------
+# pytest / mypy / ruff 的原生 cache_dir 写在 pyproject.toml，取值必须等于
+# ``{root}/{pytest|mypy|ruff}``。hypothesis / complexipy 由 tools 读本节落地。
+# pre-commit 的 RUFF_CACHE_DIR 须为 ``lumina/{root}/{ruff}``（钩子 cwd 在仓库根）。
+[cache]
+root = ".cache"
+pytest = "pytest"
+mypy = "mypy"
+ruff = "ruff"
+hypothesis = "hypothesis"
+uv = "uv"
+# complexipy 硬编码相对进程 cwd 的目录名；正式入口以 cwd=root 启动使其落在 root 下
+complexipy_vendor = ".complexipy_cache"
+
+# ------------------------------ Hypothesis profile（无法写入 pyproject） ------------------------------
+# 官方 pytest 插件不读 hypothesis_* ini（hypothesis#2434）；profile 真值源在此，
+# tests/python/conftest.py 只加载、不内嵌数值。
+[hypothesis]
+default_profile = "dev"
+
+[hypothesis.profiles.dev]
+max_examples = 1000
+deadline_ms = 3000
+print_blob = true
+persist_examples = true
+
+[hypothesis.profiles.ci]
+max_examples = 300
+deadline_ms = 3000
+print_blob = true
+derandomize = true
+persist_examples = false
 
 # ------------------------------ 扫描范围（单一真值源） ------------------------------
 [scan]

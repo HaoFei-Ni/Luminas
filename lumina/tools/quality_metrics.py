@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from tools.cache_layout import prepare_complexipy_cwd
 from tools.py_recursion import self_recursive_names
 
 
@@ -111,6 +112,9 @@ def run_complexipy(targets: list[str], output_path: Path) -> None:
     The full data set (not just over-threshold functions) is requested so
     downstream scripts decide the pass/fail verdict from a single source.
 
+    complexipy hard-codes a vendor cache dir under process cwd; we launch with
+    ``cwd`` = ``quality-gate.toml`` ``[cache].root`` so it stays unified.
+
     Args:
         targets: file/dir paths scanned by complexipy.
         output_path: JSON report destination.
@@ -118,20 +122,22 @@ def run_complexipy(targets: list[str], output_path: Path) -> None:
     Raises:
         RuntimeError: when complexipy fails to produce the JSON report.
     """
+    cache_cwd = prepare_complexipy_cwd()
+    report = output_path.resolve()
     command = [
         str(venv_executable("complexipy")),
         "--output-format=json",
-        f"--output={output_path}",
+        f"--output={report}",
         "--failed=false",
         "--quiet=true",
-        *targets,
+        *[str(Path(target).resolve()) for target in targets],
     ]
-    result = subprocess.run(command, check=False)  # noqa: S603
+    result = subprocess.run(command, cwd=cache_cwd, check=False)  # noqa: S603
     # complexipy 在存在超限函数时同样以非零码退出，但 JSON 数据照常产出；
     # 是否判失败由调用方（门禁/提交钩子）按 quality-gate.toml 阈值决定，
     # 因此这里仅校验报告确实生成，不把退出码当作失败信号。
-    if not output_path.exists() or output_path.stat().st_size == 0:
-        raise RuntimeError(f"complexipy failed to produce {output_path} (exit {result.returncode})")
+    if not report.exists() or report.stat().st_size == 0:
+        raise RuntimeError(f"complexipy failed to produce {report} (exit {result.returncode})")
 
 
 def load_report(report_path: Path) -> list[dict[str, Any]]:
