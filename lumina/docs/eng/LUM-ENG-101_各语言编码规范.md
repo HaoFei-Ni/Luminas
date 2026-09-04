@@ -22,7 +22,8 @@
 
 ### 1.1 函数与变量（snake_case）
 
-- 导出符号：`luma_<模块>_<动作>[_<dtype>]`，如 `luma_kv_encode_f32`、`luma_quant_ternary_encode`、`luma_cuda_kv_quant_int8`。
+- 导出符号：`luma_<模块>_<算法?>_<动作>[_<dtype>]`，动作在尾（或紧接 dtype 前）。例：`luma_kv_encode_f32`、`luma_quant_ternary_encode`、`luma_quant_power_of_two_encode`、`luma_svd_truncate`、`luma_cuda_fused_decode`、`luma_cuda_kv_quant_int8`。
+- 禁止颠倒动作语序（如 `*_decode_fused` → `*_fused_decode`）；禁止缺动作的名词串（如 `*_block_power_of_two` 无 `encode`）。
 - 文件局部（`static`）：一律带模块前缀（即使不导出），如 `luma_svd_jacobi_sym_eig`、`luma_svd_gram_xt_x`、`luma_math_require_finite_f32`。
 - 动作词固定：`encode` / `decode` / `quant` / `copy` / `ref` 语义见 §3。
 - dtype 后缀固定小写：`f32` / `f64`（禁止 `F32`/`float`/`f32x` 混用）。
@@ -41,7 +42,7 @@
 
 ### 1.4 参数与局部
 
-- 公共 API 入参 ≤ 5；超出用结构体封装（`luma_*_params_t` / `luma_cuda_decode_fused_args_t`）。
+- 公共 API 入参 ≤ 5；超出用结构体封装（`luma_*_params_t` / `luma_cuda_fused_decode_args_t`）。
 - 长度/索引用固定宽度类型 `int64_t`/`int32_t`，禁止在 CPU/CUDA 两套 ABI 混用 `long` 与 `int` 表同一逻辑量（现 `luma_kv_*` 用 `long`、CUDA 用 `int`，需统一）。
 
 ## 2. 平台/角色前缀（与分层对齐）
@@ -51,13 +52,13 @@
 | `luma_kv_*` / `luma_kv_ref_*` | 产品无损 KV（预言机 + Enc/Dec） | `algorithm/` |
 | `luma_math_*` | Level-1 共享原语 | `kernel/baseline/` |
 | `luma_quant_*` / `luma_svd_*` | CPU 有损对照 | `kernel/baseline/` |
-| `luma_cuda_*` | CUDA 启动器 / 设备工具 | `kernel/` + `kernel/baseline/` |
+| `luma_cuda_*` | CUDA 启动器 / 设备核 | `kernel/cuda/` + `kernel/luma_cuda*.h` |
 | `luma_triton_*` | Triton 内核（未启用） | `kernel/` |
 | `luma_strerror` / 错误码 | 公共错误语义 | `algorithm/`（随错误码定义，见 LUM-ARC-101 Phase B） |
 
 ## 3. 禁用误导性命名
 
-- 禁用 `mxfp`：本实现非 OCP MXFP 规范，旧名 → `luma_quant_block_pow2`。
+- 禁用 `mxfp`：本实现非 OCP MXFP 规范，旧名 → `luma_quant_power_of_two_encode`。
 - 禁用 `cpu` 修饰平台无关算法文件：`luma_kv_cpu.c` → `luma_kv_codec.c`（`algorithm/` 是平台无关层）。
 - 禁用文件名重复目录语义：`baseline/` 下禁止再写 `luma_baseline_*` 文件名；用 `luma_quant_*` / `luma_svd_*` / `luma_math_*`。
 - 缩写白名单：`kv`、`svd`、`cuda`、`max`、`min`、`dim`、`num`、`pow2→power_of_two`。禁用 `cla`、`mxfp`、`ata/aat`（改 `gram_xt_x` / `gram_x_xt`）。
@@ -66,7 +67,7 @@
 
 - 模块/函数/变量：`snake_case`；类 `PascalCase`；常量 `UPPER_SNAKE`（如 `ULP32`）。
 - 绑定导出名**必须与 C ABI 符号一一对应**，不得脱落 `luma_`/`cuda_` 前缀：
-  - `_luma_native.luma_kv_encode` / `luma_quant_ternary_encode` / `luma_svd_truncated`；
+  - `_luma_native.luma_kv_encode` / `luma_quant_ternary_encode` / `luma_svd_truncate`；
   - `_luma_cuda.luma_cuda_kv_quant_int8`。
 - 测试文件：`test_*.py`；核验脚本：`verify_*.py`；二者区分，不得混用。
 ## 5. 文件 / 目录命名规范
@@ -74,7 +75,7 @@
 - 文件：`luma_<name>.<ext>`（源码）；`test_<name>.<ext>`（测试）；`LUM-XXX-NNN_<en>.md`（文档）。
 - 目录：小写英文 `snake_case`（`algorithm/ kernel/ wrapper/ theory/ research/ experiments/ refs/ docs/`）；归档 `EXP-YYYYMMDD-XXX/`。
 - **文件名一律 ASCII**：文档标题含中文时，中文只进正文标题，文件名用英文短横线（`LUM-ARC-001_architecture.md`、`refs/index.md`）。
-- 头文件：公共契约头用 `luma_<层>.h`；内部头用 `luma_<层>_internal.h`，避免 `luma_kernel.h` 这种泛名。
+- 头文件：公共契约头用 `luma_<层>.h`（如 `luma_kernel.h` / `luma_cuda.h` / `luma_kv.h`）；内部头用 `luma_<层>_<角色>.h`；**禁止**废弃泛名 `luma_kernels.h` / `luma_cuda_kernels.h`，以及模糊段 `util` / `defs` / `helper` / `common` / `misc`。
 
 ## 6. 文档编号规范（LUM-XXX-NNN）
 
@@ -97,7 +98,7 @@
 | 对外声明 / 定义 | Doxygen：`@brief` `@param` `@return` `@note`（精度与适用场景） |
 | **行内注释** | 复杂场景**必须**贴在关键语句旁或紧上一行：稳定公式选型、对称性约定、同步点、除零/溢出防护、与门禁拆循环的原因 |
 
-复杂场景示例（须行内注释）：Jacobi 旋转角、在线 softmax 重标定、pow2/尾数 frexp、CUDA `__syncthreads` 前后共享状态、Gram 上三角镜像、σ≈0 置零。
+复杂场景示例（须行内注释）：Jacobi 旋转角、在线 softmax 重标定、power-of-two/尾数 frexp、CUDA `__syncthreads` 前后共享状态、Gram 上三角镜像、σ≈0 置零。
 
 门禁：`quality-gate.toml` `[comment_standard]` 由 `c_quality_gate` / `ci_quality_gate` **强制接线**：
 文件 banner、函数/声明前置文档、复杂语句行内注释（循环 / `__syncthreads` / `frexp`/`ldexp`/`exp2f`/`floor(log2)`；Python 为 `for`/`while` + `#`）。
@@ -105,15 +106,14 @@
 - **L4**（`require_why_semantics`）：邻接注释须命中 why 线索词，且不得是 what 模板句；默认 `why_include_file_patterns = ["**"]`（全生产路径最高档）。
 - **L2 扩模式**：另检 `__shared__` / `atomic*` 等。
 
-## 8.1 命名门禁（最高档，强制）
+## 8.1 命名门禁（专业最高档，强制）
 
 `quality-gate.toml` `[naming_standard]` → `tools.naming_gate`：
 
-- 文件：`luma_` 前缀；`baseline/` 下禁止文件名再含 `baseline`；禁用 `mxfp` / `luminas_` / `cla` / `ata|aat` / `_cpu_`。
-- 符号：`luma_[a-z][a-z0-9_]*`；层模块对齐；dtype 仅 `_f32`/`_f64`；符号禁止含 `baseline`。
-- 宏：公共宏 `LUMA_*`；**禁止** `LUMA_BASELINE_*` 兼容别名（`allow_baseline_macro_aliases = false`）。
-- 层头：`luma_kernel.h` / `luma_cuda.h` / `luma_kv.h`；废弃泛名 `luma_kernels.h` / `luma_cuda_kernels.h` 直接失败。
-- 全量入口另跑 `ruff check`（含 docstring D）。
+- 文件：`luma_` 前缀；`baseline/` 下禁止文件名再含 `baseline`；禁用误导词与模糊段（`util`/`defs`/`helper`/`tmp`…）；缩写 `pow2` 必须写成 `power_of_two`。
+- 符号：`luma_<module>_<action…>`（≥3 段）；禁止双下划线/尾部下划线；层模块对齐；文件-符号模块前缀一致；dtype 仅 `_f32`/`_f64`。
+- 宏：公共宏 `LUMA_*`；禁止 `LUMA_BASELINE_*`；头文件 include guard 必须为 `LUMA_<STEM>_H`。
+- 层头：`luma_kernel.h` / `luma_cuda.h` / `luma_kv.h` / `luma_limits.h` / `luma_cuda_device.h`。
 
 ## 8.2 性能门禁（L4 最高档，强制）
 

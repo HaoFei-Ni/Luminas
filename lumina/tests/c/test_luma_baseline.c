@@ -55,18 +55,18 @@ static void test_ternary(void)
         g_fail = 1, fprintf(stderr, "FAIL ternary threshold\n");
 }
 
-static void test_pow2_block(void)
+static void test_quant_power_of_two_encode(void)
 {
     float x[5] = {1.0f, -1.0f, 0.25f, 0.0f, 2.0f};
     float out[5];
 
-    expect_ok(luma_quant_block_pow2(x, out, 5, 3, 2), "pow2_block");
+    expect_ok(luma_quant_power_of_two_encode(x, out, 5, 3, 2), "power_of_two_encode");
     if (out[3] != 0.0f) {
-        fprintf(stderr, "FAIL pow2_block zero\n");
+        fprintf(stderr, "FAIL power_of_two_encode zero\n");
         g_fail = 1;
     }
-    if (luma_quant_block_pow2(x, out, 5, 40, 2) != LUMA_ERR_ARG)
-        g_fail = 1, fprintf(stderr, "FAIL pow2_block mbits\n");
+    if (luma_quant_power_of_two_encode(x, out, 5, 40, 2) != LUMA_ERR_ARG)
+        g_fail = 1, fprintf(stderr, "FAIL power_of_two_encode mbits\n");
 }
 
 static void test_svd_full_rank(void)
@@ -85,28 +85,28 @@ static void test_svd_full_rank(void)
     double uw[4], sw[2], vtw[8];
     double rel;
 
-    expect_ok(luma_svd_truncated(xt, u, s, vt, 4, 3, 3), "svd tall");
+    expect_ok(luma_svd_truncate(xt, u, s, vt, 4, 3, 3), "svd tall");
     rel = fro_recon(xt, u, s, vt, 4, 3, 3);
     if (rel > LUMA_TEST_SVD_RECON_TOL) {
         fprintf(stderr, "FAIL svd tall residual %g\n", rel);
         g_fail = 1;
     }
 
-    expect_ok(luma_svd_truncated(xw, uw, sw, vtw, 2, 4, 2), "svd wide");
+    expect_ok(luma_svd_truncate(xw, uw, sw, vtw, 2, 4, 2), "svd wide");
     rel = fro_recon(xw, uw, sw, vtw, 2, 4, 2);
     if (rel > LUMA_TEST_SVD_RECON_TOL) {
         fprintf(stderr, "FAIL svd wide residual %g\n", rel);
         g_fail = 1;
     }
 
-    if (luma_svd_truncated(xt, u, s, vt, 4, 3, 0) != LUMA_ERR_ARG)
+    if (luma_svd_truncate(xt, u, s, vt, 4, 3, 0) != LUMA_ERR_ARG)
         g_fail = 1, fprintf(stderr, "FAIL svd r=0\n");
 }
 
 int main(void)
 {
     test_ternary();
-    test_pow2_block();
+    test_quant_power_of_two_encode();
     test_svd_full_rank();
     if (g_fail) {
         fprintf(stderr, "test_luma_baseline FAILED\n");

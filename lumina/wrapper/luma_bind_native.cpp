@@ -97,8 +97,8 @@ static py::tuple quant_ternary_encode(py::array_t<float, py::array::c_style> w, 
     return py::make_tuple(scale, codes);
 }
 
-/* 有损 pow2 块量化绑定。 */
-static py::array_t<float> quant_block_pow2(py::array_t<float, py::array::c_style> x,
+/* 有损 power-of-two 块量化绑定。 */
+static py::array_t<float> quant_power_of_two_encode(py::array_t<float, py::array::c_style> x,
                                            int mantissa_bits, int block_size)
 {
     luma_require_c_f32(x, "x");
@@ -108,16 +108,16 @@ static py::array_t<float> quant_block_pow2(py::array_t<float, py::array::c_style
     int rc;
     {
         py::gil_scoped_release release;
-        rc = luma_quant_block_pow2(static_cast<const float *>(buf.ptr), out.mutable_data(),
+        rc = luma_quant_power_of_two_encode(static_cast<const float *>(buf.ptr), out.mutable_data(),
                                    n, mantissa_bits, block_size);
     }
     if (rc != LUMA_OK)
-        luma_throw(rc, "luma_quant_block_pow2");
+        luma_throw(rc, "luma_quant_power_of_two_encode");
     return out;
 }
 
 /* 有损截断 SVD 绑定：r 夹紧到合法秩，避免 Python 侧直接崩。 */
-static py::tuple svd_truncated(py::array_t<double, py::array::c_style> x, int r)
+static py::tuple svd_truncate(py::array_t<double, py::array::c_style> x, int r)
 {
     luma_require_c_f64_2d(x, "x");
     auto buf = x.request();
@@ -136,11 +136,11 @@ static py::tuple svd_truncated(py::array_t<double, py::array::c_style> x, int r)
     int rc;
     {
         py::gil_scoped_release release;
-        rc = luma_svd_truncated(static_cast<const double *>(buf.ptr), u.mutable_data(),
+        rc = luma_svd_truncate(static_cast<const double *>(buf.ptr), u.mutable_data(),
                                 s.mutable_data(), vt.mutable_data(), m, n, rank);
     }
     if (rc != LUMA_OK)
-        luma_throw(rc, "luma_svd_truncated");
+        luma_throw(rc, "luma_svd_truncate");
     return py::make_tuple(u, s, vt);
 }
 
@@ -151,6 +151,6 @@ PYBIND11_MODULE(_luma_native, m)
     m.def("luma_kv_decode", &kv_decode, py::arg("enc"), py::arg("n"),
           "product Dec (identity placeholder)");
     m.def("luma_quant_ternary_encode", &quant_ternary_encode, "lossy ternary weight baseline");
-    m.def("luma_quant_block_pow2", &quant_block_pow2, "lossy power-of-two block baseline");
-    m.def("luma_svd_truncated", &svd_truncated, "lossy truncated SVD baseline");
+    m.def("luma_quant_power_of_two_encode", &quant_power_of_two_encode, "lossy power-of-two block baseline");
+    m.def("luma_svd_truncate", &svd_truncate, "lossy truncated SVD baseline");
 }

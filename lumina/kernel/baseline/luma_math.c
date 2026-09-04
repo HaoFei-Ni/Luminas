@@ -81,7 +81,7 @@ void luma_math_fill_i8(signed char *dst, long n, signed char v)
 }
 
 /* 向下取 2 的幂尺度；amax<=0 回退 1 防 log 域错误。 */
-float luma_math_pow2_floor_scale_f32(float amax)
+float luma_math_power_of_two_scale_f32(float amax)
 {
     if (!(amax > 0.0f) || !isfinite(amax))
         return 1.0f;

@@ -1,13 +1,13 @@
 /**
- * @file luma_cuda_util.h
+ * @file luma_cuda_device.h
  * @brief CUDA 设备抽象：2 的幂检测 + 块内归约（主机/设备内联）。
  *
  * @note 仅被 .cu include；不进公共 C-ABI。消除各核重复归约代码。
  */
-#ifndef LUMA_CUDA_UTIL_H
-#define LUMA_CUDA_UTIL_H
+#ifndef LUMA_CUDA_DEVICE_H
+#define LUMA_CUDA_DEVICE_H
 
-#include "baseline/luma_defs.h"
+#include "baseline/luma_limits.h"
 
 #include <cuda_runtime.h>
 #include <math.h>
@@ -77,4 +77,4 @@ static inline int luma_cuda_launch_validate(int threads_per_block, int need_ptrs
     return LUMA_OK;
 }
 
-#endif /* LUMA_CUDA_UTIL_H */
+#endif /* LUMA_CUDA_DEVICE_H */

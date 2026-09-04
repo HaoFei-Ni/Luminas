@@ -8,21 +8,21 @@ C99 / CUDA kernels for Luminas. Product symbols are `luma_kv_*`. Quantization, t
 
 ```text
 lumina/kernel/
-  luma_kernel.h                         public CPU lossy C-ABI (+ algorithm/luma_kv.h)
+  luma_kernel.h                          public CPU lossy C-ABI (+ algorithm/luma_kv.h)
   luma_cuda.h                            CUDA launcher ABI
-  luma_cuda.h                    compatibility shim → luma_cuda.h
-  luma_cuda_util.h                       CUDA reduce / launch validate helpers
-  baseline/
-    luma_defs.h                          macros / tolerances (shared base)
+  luma_cuda_device.h                     CUDA reduce / launch validate helpers
+  baseline/                              CPU lossy baselines only
+    luma_limits.h                        macros / tolerances
     luma_math.h / luma_math.c            Level-1 primitives
     luma_svd.h                           private SVD contracts
     luma_svd_jacobi.c                    Jacobi eig + argsort
     luma_svd_gram.c                      Gram XtX / XXt
-    luma_svd_truncated.c                 SVD driver (assemble U/S/Vt)
-    luma_quant_ternary.c                 lossy weight ternary
-    luma_quant_block_pow2.c              lossy power-of-two block quant
-    luma_cuda_kv_quant_int8.cu           lossy int8 KV
-    luma_cuda_decode_fused.cu            lossy low-rank+tail decode (opt-in)
+    luma_svd_truncate.c                  SVD truncate driver
+    luma_quant_ternary.c                 ternary encode
+    luma_quant_power_of_two.c            power-of-two encode
+  cuda/                                  CUDA launchers / device kernels
+    luma_cuda_kv_quant_int8.cu           int8 KV quant
+    luma_cuda_fused_decode.cu            fused low-rank+tail decode
 
   (C tests live in ../tests/c/ — see ../tests/README.md)
 

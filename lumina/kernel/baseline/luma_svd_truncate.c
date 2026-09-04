@@ -1,5 +1,5 @@
 /**
- * @file luma_svd_truncated.c
+ * @file luma_svd_truncate.c
  * @brief 截断 SVD 驱动：X ≈ U diag(S) Vt（有损基线）。
  *
  * 高矩阵：G=XᵀX；宽矩阵：G=XXᵀ。子模块：luma_svd_{gram,jacobi}；原语：luma_math。
@@ -144,7 +144,7 @@ static void luma_svd_assemble_wide(const double *x, const double *v, const int *
 }
 
 /* 导出截断 SVD：拒绝重叠缓冲；r 截断必然有损。 */
-int luma_svd_truncated(const double *x, double *u, double *s, double *vt,
+int luma_svd_truncate(const double *x, double *u, double *s, double *vt,
                        int m, int n, int r)
 {
     int dim, rc;

@@ -49,7 +49,7 @@ int luma_cuda_kv_quant_int8(const __half *x, signed char *codes, float *scales,
  *   k_tail,v_tail  [T, d]
  *   cos/sin_*      [d/2]   d 必须为偶数
  */
-typedef struct luma_cuda_decode_fused_args {
+typedef struct luma_cuda_fused_decode_args {
     const __half *x;
     const __half *Wq;
     const __half *Wk;
@@ -72,7 +72,7 @@ typedef struct luma_cuda_decode_fused_args {
     int threads_per_block;
     cudaStream_t stream;
     __half *out;
-} luma_cuda_decode_fused_args_t;
+} luma_cuda_fused_decode_args_t;
 
 /**
  * @brief 低秩背景 + 精确尾部的融合 decode（有损对照骨架）。
@@ -82,7 +82,7 @@ typedef struct luma_cuda_decode_fused_args {
  *
  * @note 默认不编进库，见 LUMINA_BUILD_FUSED_DECODE。
  */
-int luma_cuda_decode_fused(const luma_cuda_decode_fused_args_t *args);
+int luma_cuda_fused_decode(const luma_cuda_fused_decode_args_t *args);
 
 #ifdef __cplusplus
 }

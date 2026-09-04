@@ -45,7 +45,7 @@
 **原技术债**：`algorithm/` 源 `#include "luma_kernel.h"`（位于 `kernel/`），构成 algorithm→kernel 的头依赖。已按下列方案消除：
 
 1. 抽出纯算法层契约 → `algorithm/luma_kv.h`（错误码、`luma_strerror`、`luma_kv_*` / `luma_kv_ref_*` 声明）。
-2. `kernel/luma_kernel.h` 只保留有损基线声明（`luma_quant_*` / `luma_svd_*`）并经 `baseline/luma_defs.h` 纳入错误码；`LUMA_CUDA_MAX_HEAD_DIM` 在 `luma_cuda.h`。
+2. `kernel/luma_kernel.h` 只保留有损基线声明（`luma_quant_*` / `luma_svd_*`）并经 `baseline/luma_limits.h` 纳入错误码；`LUMA_CUDA_MAX_HEAD_DIM` 在 `luma_cuda.h`。
 3. `luma_status.c` 随错误码定义归属 `algorithm/`（**归属决策：algorithm/，非独立 common/**）；`algorithm/` 源改 include 本层 `luma_kv.h`。
 4. 同步 `kernel/CMakeLists.txt`（源路径 `../algorithm/luma_status.c`、include 目录加 `../algorithm`）与各 README。
 
@@ -53,7 +53,7 @@
 
 ### Phase C（已完成，2026-09-04）— 命名规范化 + superproject
 
-在 LUM-ENG-101 命名约束落地后执行：`luma_kv_cpu.c`→`luma_kv_codec.c`；`mxfp`→`pow2_block`；Python 绑定导出名补 `luma_`/`luma_cuda_` 前缀；抽 `kernel/luma_cuda_util.h` 共享 `luma_is_pow2`/`luma_reduce_sum`；容差/阈值具名化；测试树合并为 `tests/c/` + `tests/python/`。
+在 LUM-ENG-101 命名约束落地后执行：`luma_kv_cpu.c`→`luma_kv_codec.c`；`mxfp`→`power_of_two_encode`；Python 绑定导出名补 `luma_`/`luma_cuda_` 前缀；抽 `kernel/luma_cuda_device.h` 共享 `luma_is_pow2`/`luma_reduce_sum`；容差/阈值具名化；测试树合并为 `tests/c/` + `tests/python/`。
 
 同时建立顶层 superproject `lumina/CMakeLists.txt`，将构建图拆为三层目标：`luma_algorithm`（algorithm/）→ `luma_cpu`/`luma_cuda`（kernel/）→ `_luma_native`/`_luma_cuda`（wrapper/）。`kernel/` 不再跨目录引用 `../algorithm/`、`../wrapper/` 源。
 

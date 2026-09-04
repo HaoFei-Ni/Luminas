@@ -12,7 +12,11 @@ from pathlib import Path
 from typing import Any
 
 from tools.c_quality_metrics import as_file_key, collect_c_files, function_spans
-from tools.naming_rules import check_c_symbol, check_source_filename
+from tools.naming_rules import (
+    check_c_symbol,
+    check_include_guard,
+    check_source_filename,
+)
 
 _DEFINE = re.compile(r"^\s*#\s*define\s+([A-Za-z_]\w*)")
 
@@ -54,6 +58,9 @@ def _check_file(path: Path, allow: frozenset[str], allow_aliases: bool) -> list[
     if path.suffix.lower() in {".cpp", ".hpp", ".cc"}:
         return out
     raw = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    guard_issue = check_include_guard(key, raw)
+    if guard_issue:
+        out.append(_violation(key, guard_issue, 0, 1))
     seen: set[str] = set()
     # 单遍：只扫函数定义 span，避免把宏/类型当符号。
     for name, _start, _end in function_spans(raw):

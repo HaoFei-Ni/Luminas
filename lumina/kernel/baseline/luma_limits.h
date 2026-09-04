@@ -1,12 +1,12 @@
 /**
- * @file luma_defs.h
+ * @file luma_limits.h
  * @brief Baseline 公共定义：容差、结构上限、具名常量（目录语义已含 baseline）。
  *
  * @note 错误码体系仍在 algorithm/luma_kv.h（LUMA_OK / LUMA_ERR_*），本头不重复定义。
  *       有损基线专用；禁止当作产品无损 KV 契约。
  */
-#ifndef LUMA_DEFS_H
-#define LUMA_DEFS_H
+#ifndef LUMA_LIMITS_H
+#define LUMA_LIMITS_H
 
 #include "luma_kv.h"
 
@@ -18,7 +18,7 @@ extern "C" {
 #define LUMA_JACOBI_MAX_DIM 512
 
 /** 1<<(mbits+1) 须落在 float 安全移位内；禁止 >= 24。 */
-#define LUMA_POW2_MAX_MANTISSA_BITS 23
+#define LUMA_POWER_OF_TWO_MAX_MANTISSA_BITS 23
 
 /** |scale| 近零 → 三值码全零，避免假阈值。 */
 #define LUMA_TERNARY_NEAR_ZERO 1e-12f
@@ -45,4 +45,4 @@ extern "C" {
 }
 #endif
 
-#endif /* LUMA_DEFS_H */
+#endif /* LUMA_LIMITS_H */

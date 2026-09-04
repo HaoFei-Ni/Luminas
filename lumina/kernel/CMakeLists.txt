@@ -3,10 +3,10 @@
 set(LUMA_CPU_SOURCES
     baseline/luma_math.c
     baseline/luma_quant_ternary.c
-    baseline/luma_quant_block_pow2.c
+    baseline/luma_quant_power_of_two.c
     baseline/luma_svd_jacobi.c
     baseline/luma_svd_gram.c
-    baseline/luma_svd_truncated.c
+    baseline/luma_svd_truncate.c
 )
 
 add_library(luma_cpu STATIC ${LUMA_CPU_SOURCES})
@@ -29,9 +29,9 @@ add_test(NAME luma_test_baseline COMMAND luma_test_baseline)
 if(LUMINA_BUILD_CUDA)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
-    set(LUMA_CUDA_SOURCES baseline/luma_cuda_kv_quant_int8.cu)
+    set(LUMA_CUDA_SOURCES cuda/luma_cuda_kv_quant_int8.cu)
     if(LUMINA_BUILD_FUSED_DECODE)
-        list(APPEND LUMA_CUDA_SOURCES baseline/luma_cuda_decode_fused.cu)
+        list(APPEND LUMA_CUDA_SOURCES cuda/luma_cuda_fused_decode.cu)
     endif()
     add_library(luma_cuda STATIC ${LUMA_CUDA_SOURCES})
     target_include_directories(luma_cuda PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

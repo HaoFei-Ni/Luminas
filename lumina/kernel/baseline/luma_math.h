@@ -7,7 +7,7 @@
 #ifndef LUMA_MATH_H
 #define LUMA_MATH_H
 
-#include "baseline/luma_defs.h"
+#include "baseline/luma_limits.h"
 
 #include <stddef.h>
 
@@ -62,7 +62,7 @@ void luma_math_fill_i8(signed char *dst, long n, signed char v);
  * @param[in] amax 块内绝对值最大
  * @return 正有限尺度；使 |x|/scale ∈ (0.5,2]（amax 为 2 的幂时取到 1）
  */
-float luma_math_pow2_floor_scale_f32(float amax);
+float luma_math_power_of_two_scale_f32(float amax);
 
 /**
  * @brief 正数尾数量化：mbits+1 位定点（含隐含 1），away-from-zero。

@@ -5,7 +5,7 @@
  * 一 block ↔ 一量化块：shared 归约 amax → scale=2^{floor(log2(amax))} → 饱和量化。
  */
 #include "luma_cuda.h"
-#include "luma_cuda_util.h"
+#include "luma_cuda_device.h"
 
 #include <math.h>
 
@@ -66,7 +66,7 @@ __global__ void luma_cuda_kv_quant_int8_kernel(
     __syncthreads(); /* 归约前必须看见全部局部 amax。 */
     scale = luma_cuda_block_reduce_max(smem, tid, nthreads);
     if (tid == 0) {
-        /* 与 CPU pow2_floor 同语义；amax=0 → scale=1，避免除零。 */
+        /* 与 CPU luma_math_power_of_two_scale_f32 同语义；amax=0 → scale=1，避免除零。 */
         scale = (scale > 0.0f) ? exp2f(floorf(log2f(scale))) : 1.0f;
         scales[block_idx] = scale;
         smem[0] = scale; /* 广播槽：全体线程下一拍读同一尺度。 */

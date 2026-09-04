@@ -11,7 +11,7 @@
 #ifndef LUMA_KERNEL_H
 #define LUMA_KERNEL_H
 
-#include "baseline/luma_defs.h"
+#include "baseline/luma_limits.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,13 +38,13 @@ int luma_quant_ternary_encode(const float *w, float *scale, signed char *codes,
  * @param[in] x 输入
  * @param[out] out 量化写回（不得与 x 重叠）
  * @param[in] n 长度
- * @param[in] mantissa_bits ∈ [0, LUMA_POW2_MAX_MANTISSA_BITS]
+ * @param[in] mantissa_bits ∈ [0, LUMA_POWER_OF_TWO_MAX_MANTISSA_BITS]
  * @param[in] block_size 块长，>0
  * @return LUMA_OK | LUMA_ERR_ARG | LUMA_ERR_NUMERIC
  *
  * @note 有损：不得套用 2-ulp 无损门。
  */
-int luma_quant_block_pow2(const float *x, float *out, long n,
+int luma_quant_power_of_two_encode(const float *x, float *out, long n,
                           int mantissa_bits, int block_size);
 
 /**
@@ -61,7 +61,7 @@ int luma_quant_block_pow2(const float *x, float *out, long n,
  *
  * @note 高矩阵 G=XᵀX；宽矩阵 G=XXᵀ。r 截断必然有损。
  */
-int luma_svd_truncated(const double *x, double *u, double *s, double *vt,
+int luma_svd_truncate(const double *x, double *u, double *s, double *vt,
                        int m, int n, int r);
 
 #ifdef __cplusplus
