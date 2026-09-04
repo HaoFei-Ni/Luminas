@@ -2,6 +2,8 @@
 
 C99 / CUDA kernels for Luminas. Product symbols are `luma_kv_*`. Quantization, truncated SVD, and int8 KV are **baselines only**.
 
+> **分层现状（2026-09）**：物理目录规划（`algorithm/` / `kernel/` / `wrapper/`）见 `../docs/arc/LUM-ARC-101`；本目录为现有代码所在地，迁移按该裁决执行，须同步本 README 与 `CMakeLists.txt`。尚未迁移前，现有文件保持当前位置。
+
 ## Layout
 
 ```text

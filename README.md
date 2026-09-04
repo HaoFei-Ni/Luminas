@@ -1,3 +1,49 @@
+# LUMINAS（本仓库原创部分）
+
+> 本仓库包含两个部分：
+> - **Luminas** —— 原创无损 KV-cache 压缩研究，源码全部位于 [`lumina/`](lumina/README.md)。
+> - **SpikingBrain2.0** —— 只读上游参考树（`spb2/`、`spb2vl/`、`spb2_vllm/`、`MoBA/`、`flash-linear-attention_dev/`、`run_model*`），**勿修改**；其说明见下文官方 README。
+>
+> 架构身份与"原创 / 只读"边界由 `.cursor/skills/lumina/luminas-arch-skill` 定义。
+
+## Luminas 目录地图
+
+```text
+lumina/                       源码与内容（唯一原创区）
+  algorithm/                  纯算法层（ANSI C 压缩数学）
+  kernel/                     CPU/CUDA 算子与基线（现有代码）
+  wrapper/                    平台封装层（对外 API / 绑定）
+  theory/  research/  tests/  方法笔记 / 实验协议 / 测试
+  docs/                       正式文档（arc/eng/res/pm × LUM-*）
+  refs/                       外部论文与规范
+  experiments/                实验归档产物 EXP-*
+.cursor/skills/lumina/         三技能：arch / eng-standard / research
+```
+
+## LUM-* 编号体系
+
+| 域 | 权威技能 | 总纲 | 子文档 |
+|---|---|---|---|
+| 架构 | `luminas-arch-skill` | `lumina/docs/arc/LUM-ARC-001` | 101 分层 / 201 算子 / 301 接口 |
+| 工程 | `eng-standard-skill` | `lumina/docs/eng/LUM-ENG-001` | 101 编码 / 201 构建 / 301 测试 |
+| 科研 | `research-skill` | `lumina/docs/res/LUM-RES-001` | 101 消融 / 201 数据集 / 301 论文 |
+| 项目 | — | `lumina/docs/pm/LUM-PM-001` | 里程碑 / 版本 |
+
+技能冲突优先级：`luminas-arch-skill` > `eng-standard-skill` > `research-skill` > Orchestra。
+分层模型冲突的唯一裁决点：`lumina/docs/arc/LUM-ARC-101`。
+"无损"未过 `research-skill` 三级门槛前一律称 **candidate lossless path**。
+
+## 快速入口
+
+- 源码导航：[`lumina/README.md`](lumina/README.md)
+- 测试：`ctest --test-dir outputs/build/kernel`、`pytest -n auto lumina/tests`
+- 门禁矩阵：`.cursor/skills/lumina/eng-standard-skill/references/test-matrix.md`
+- 非目标清单：`.cursor/skills/lumina/luminas-arch-skill/references/non-goals.md`
+
+---
+
+---
+
 <div align="center">
   <h1>
     SpikingBrain2.0<br>
