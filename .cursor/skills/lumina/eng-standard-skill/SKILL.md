@@ -1,86 +1,117 @@
 ---
-description: "Luminas 项目强制工程与测试核心标准，支持4GB~120GB全范围显存适配，保障可复现性、可靠性与高性能"
-version: "2.0"
-author: "research"
-tags: ["engineering-standard","coding-spec","testing-spec","ansi-c","cuda-cpp","triton","rust","python","pybind11","benchmark"]
+name: eng-standard-skill
+description: >-
+  Enforces Luminas coding, build, and CI test standards for C99, CUDA, Triton,
+  Rust, Python, and pybind11, including luma_ prefixes, numerical 2-ulp checks,
+  and discrete GPU memory tiers (8/24/80 GB). Use when writing or reviewing
+  kernels, bindings, CMake, tests, or benchmarks, or when the user mentions
+  CUDA, Triton, kernel, 算子, nsys, ncu, coverage, pybind11, or luma_ prefixes.
+  Do not use for paper structure, ablation design, architecture identity, or
+  claiming lossless from unit tests alone.
+paths:
+  - "lumina/**"
+  - "**/*.{c,h,cu,cuh}"
+metadata:
+  version: "3.0.0"
+  owner: luminas
+  layer: engineering
 ---
-# Luminas 工程与测试强制核心标准
 
-## 一、编码规范（按技术栈，强制执行）
-### 1.1 ANSI C (C99) 计算内核
-参考基准：llama.cpp内核规范、MISRA C安全子集
-1. 纯C99标准实现，无C++扩展、无编译器专属扩展；所有内核可独立编译。
-2. 全局函数统一前缀`luma_`，静态函数加`static`限定；宏全大写下划线分隔。
-3. 显式内存管理，所有指针非空校验，数组访问边界检查；禁止隐式分配。
-4. 整型返回码传递错误，禁止全局`errno`；浮点运算严格遵循IEEE 754。
+# Luminas Engineering Standard
 
-### 1.2 CUDA-C++ GPU内核
-参考基准：NVIDIA CUDA最佳实践、FlashAttention v3规范
-1. 核函数统一前缀`luma_cuda_`，网格/块维度参数化，禁止硬编码尺寸。
-2. 共享内存解决bank冲突，全局内存合并对齐；优先异步拷贝实现计算访存重叠。
-3. 所有CUDA调用与核函数启动必须检查返回状态；禁止忽略错误。
-4. 输出与ANSI C参考实现数值对齐，无损算法逐元素一致；支持4GB~120GB显存动态分块适配。
+This skill owns code, build, and **CI-grade** tests. It does not redefine "lossless" and does not own paper experiments.
 
-### 1.3 Triton高层算子
-参考基准：OpenAI Triton官方规范
-1. 算子统一前缀`luma_triton_`，分块大小参数化，内置自动调优。
-2. 显式控制内存布局与访问模式，禁止隐式类型转换与广播。
-3. 性能不低于同功能CUDA版本的90%；支持4GB~120GB显存自适应。
+## Priority
 
-### 1.4 Rust基础设施层
-参考基准：OpenAI服务端Rust工程规范
-1. `unsafe`块最小化并附安全说明；禁止无理由使用`unwrap()`/`expect()`。
-2. 统一`Result`传递错误，并发代码严格遵循`Send`/`Sync`约束。
-3. KV缓存运行时、推理服务支持高并发低延迟；资源池化复用，对接CUDA显存管理。
+1. `luminas-arch-skill` — identity and non-goals (do not implement GPTQ/AWQ/pruning; do not patch upstream)
+2. `eng-standard-skill` — this file
+3. `research-skill` — PPL / task / statistics / paper
+4. Orchestra — baselines and tools only
 
-### 1.5 Python调度层
-参考基准：Google Python风格指南、PyTorch官方规范
-1. 仅做胶水调度、接口封装、测试入口，禁止实现重计算逻辑。
-2. 公共接口全量类型注解，强制静态类型检查；禁止全局可变状态。
-3. 暴露显存配置参数，支持手动上限与自适应模式。
+Test tables and commands: [references/test-matrix.md](references/test-matrix.md).
 
-### 1.6 pybind11绑定层
-参考基准：pybind11官方最佳实践
-1. 仅完成Python与C-ABI数据编组、参数校验、异常转换，**禁止写入业务计算逻辑**。
-2. 所有numpy数组检查维度、类型、内存连续性；耗时计算释放GIL。
-3. C层错误码统一映射为对应Python异常，附带上下文信息。
+## When to use
 
-## 二、工程与构建规范
-1. CMake分层构建，内核层、绑定层、工具层独立编译；提供单命令全链路构建脚本。
-2. 全依赖版本锁定：编译器、CUDA、驱动、Python及第三方依赖全部固定；Python依赖使用`uv.lock`。
-3. 提交遵循Conventional Commits，原子化提交；核心算法变更必须附带测试用例。
-4. 4GB~120GB全范围显存适配：动态分块机制，显存充足时最大化性能，紧张时优雅降级，保证无损性；内置溢出保护与显存池化管理。
+Writing or reviewing anything under `lumina/` in C, CUDA, Triton, Rust, pybind11, or Python bindings/tests.
 
-## 三、测试规范（强制执行）
-### 3.1 测试五层体系
-所有模块必须覆盖：单元正确性、边界鲁棒性、集成对接、基准性能、无损性专项测试。
+## Do not use
 
-### 3.2 测试框架与覆盖率
-| 技术栈 | 测试框架 | 覆盖率要求 |
-|--------|----------|------------|
-| ANSI C | Unity / CMocka | ≥95%，核心函数100% |
-| CUDA-C++ | cuTest | 核函数100% |
-| Triton | pytest | 算子100% |
-| Rust | cargo test | ≥90%，unsafe代码100% |
-| Python | pytest + pytest-xdist | 接口层100%，核心调度≥90% |
+- Architecture lock, directory isolation → `luminas-arch-skill`
+- Ablations, p-values, venue structure → `research-skill`
+- Upstream `spb2/` / `MoBA/` style matching
 
-### 3.3 核心测试标准
-1. **数值正确性**：所有内核配套FP64参考实现作为真值基准；统计最大绝对误差、RMSE、相对误差；边界用例全覆盖；固定种子多次运行结果一致。
-2. **无损KV压缩专项**：逐元素误差分布验证；PPL退化量≤0.01；与传统压缩方案横向对比；长上下文梯度验证。
-3. **基准性能**：固定测试环境，每组连续运行≥5次取均值与标准差；同时报告吞吐、显存峰值、FLOPs利用率、屋顶线占比、首token延迟；核心变更性能下降不得超过2%。
-4. **显存适配**：验证4GB~120GB全范围功能可用、无损性保持、显存占用合规、溢出降级正常；无显存泄漏。
-5. **可复现性**：测试脚本参数化，数据集固定哈希校验；输出结构化报告，关联代码提交哈希。
+## Coding rules
 
-### 3.4 强制标配工具集
-| 类别 | 工具 | 核心用途 |
-|------|------|--------|
-| 单元测试 | pytest + pytest-xdist + Hypothesis | Python层统一测试、并行执行、属性化边界用例生成 |
-| 静态检查 | mypy + pyright + ruff + black | 双类型检查、代码规范、统一格式化 |
-| 性能分析 | nsys + ncu + torch.profiler + py-spy | CUDA全链路剖析、内核级调优、PyTorch算子追踪、Python采样分析 |
-| 内存诊断 | cuda-memcheck + tracemalloc + objgraph + pytest-memray | 显存越界泄漏、Python内存追踪、引用分析、用例内存检测 |
-| 基准验证 | pytest-benchmark + MLPerf LLM + tox | 基准统计、行业标准端到端测试、多环境兼容性验证 |
+### C99 CPU reference kernels
 
-## 四、合规要求
-1. 所有代码变更必须通过完整测试与静态检查，方可合并主分支。
-2. 核心算法发布必须附带测试报告、基准报告、无损验证报告、显存适配报告。
-3. 实验数据、日志、配置与代码提交哈希绑定归档，全程可追溯。
+Applies to CPU reference and any portable scalar kernel, **not** to `.cu`.
+
+1. C99 only. No C++, no GNU/MSVC extensions in these files.
+2. Exported symbols `luma_*`; file-local `static`; macros `LUMA_*`.
+3. Explicit allocation; NULL and bounds checks; no implicit grow.
+4. Public APIs return `int` error codes. Do not report errors via `errno`.
+5. IEEE 754 for the floating-point path you document in the header.
+
+### CUDA C++ kernels
+
+CUDA language extensions are allowed in `.cu` / `.cuh`.
+
+1. Exported kernels / launchers `luma_cuda_*`. Grid and block are parameters, never literals for problem size.
+2. Shared memory: no bank conflicts on the hot path; global loads vectorized / coalesced; prefer async copy where the arch supports it.
+3. Check every runtime API and `cudaGetLastError()` after launch. Swallowing errors is a defect.
+4. Numeric output matches the C99 reference under the L1/L5 gate in [references/test-matrix.md](references/test-matrix.md).
+5. Tiling must run on GPU tiers **S=8 GB, M=24 GB, L=80 GB**. Do not claim a continuous 4–120 GB sweep.
+
+### Triton
+
+1. Exported ops `luma_triton_*`. Tile sizes are parameters; keep an autotune table.
+2. No implicit cast or silent broadcast. Layout is explicit.
+3. If a CUDA twin exists: same shape, same GPU, 2 warmup + 5 timed runs, Triton mean latency ≤ 1.11× CUDA mean (≈ 90% throughput). If no CUDA twin yet, report vs roofline only.
+
+### Rust infra (optional layer)
+
+1. Every `unsafe` block has a safety comment. No `unwrap`/`expect` on library paths.
+2. `Result` + `Send`/`Sync` as required. No hidden global device state.
+
+### Python scheduler
+
+1. Glue, module wiring, train/infer entry, tests, **loop control** (Ouro-style). 
+2. **No operator math and no KV encode/decode math** in Python. That belongs in `luma_*` / `luma_cuda_*` / `luma_triton_*`.
+3. Public functions are fully annotated; `mypy` clean; no process-wide mutable cache.
+
+### pybind11
+
+1. Marshal, validate, translate errors. No numeric algorithm in the binding `.cpp`.
+2. Check numpy dtype, rank, and c-contiguity; reject the rest with a clear error.
+3. Release the GIL around kernel launches. Map `luma_*` codes to typed Python exceptions.
+
+## Build
+
+1. CMake: kernel / bind / tools as separate targets. One script or `cmake --build` target builds the tested pipeline.
+2. Lock compiler, CUDA toolkit, driver family, and Python deps (`uv.lock`). Record versions in every benchmark report.
+3. Conventional Commits; one concern per commit. Kernel behavior changes ship with an L1 test.
+
+## Memory tiers
+
+| Tier | VRAM | Default duty |
+|---|---|---|
+| S | 8 GB | Functional + degrade path |
+| M | 24 GB | Default research GPU |
+| L | 80 GB | 128k / large batch |
+
+Implement a tile/pool path that **degrades** on OOM (smaller tiles, not silent abort). Degrade must still pass L5 if the kernel is on the lossless KV path. Use `compute-sanitizer` for device leaks; do not rely on `cuda-memcheck`.
+
+## Tests (summary)
+
+All `lumina/` modules: L1 unit, L2 boundary, L3 integration, L4 benchmark. Lossless KV paths also L5. Full gates and coverage: [references/test-matrix.md](references/test-matrix.md).
+
+CI tools: pytest + xdist + Hypothesis; mypy + ruff; nsys / ncu / torch.profiler; compute-sanitizer; pytest-benchmark. Do not block a PR on MLPerf.
+
+Engineering tests **do not** grant a "lossless" paper claim. That claim requires `research-skill`.
+
+## Merge bar
+
+- Static checks + L1–L3 green on the changed module.
+- L4 if the change is on a hot kernel (throughput drop ≤ 2% vs last tagged baseline on the same tier).
+- L5 if the change touches compress / decompress / residual.
+- Release of a core algorithm additionally needs the research reports named in `research-skill`, bound to a commit hash.

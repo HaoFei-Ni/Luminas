@@ -1,153 +1,104 @@
 ---
-description: "Luminas 项目科研实验强制标准，对齐顶刊审稿标准，覆盖实验设计、分层执行、论文结构全流程，保障严谨性与可复现性"
-version: "1.3"
-author: "research"
-tags: ["research-standard","experiment-design","ablation-study","lossless-kv-compression","llm-architecture","reproducibility","paper-structure"]
+name: research-skill
+description: >-
+  Enforces Luminas experiment design, the canonical three-level lossless KV
+  definition, ablation and SOTA matrices, and reproducibility rules for
+  paper-grade results. Use when designing experiments, running ablations,
+  claiming lossless or 无损 compression, reporting PPL, RULER, MMLU, or LongBench,
+  or drafting paper sections. Triggers: ablation, PPL, lossless, 无损, 消融, 实验,
+  论文. Do not use for kernel coding standards, CMake, or choosing GPTQ/AWQ/HQQ
+  as the Luminas implementation.
+metadata:
+  version: "3.0.0"
+  owner: luminas
+  layer: research
 ---
-# Luminas 科研实验强制标准
-本规范对齐全球顶级期刊与会议的学术评审标准，采用大模型架构领域通用研究范式，结合无损KV压缩核心创新方向制定，所有用于论文发表的实验与文稿必须严格执行。
 
-## 一、实验设计核心准则（顶刊硬性要求）
-1. **单变量控制原则**
-    每组实验仅改动一个核心模块或参数，其余所有条件与基线完全一致；所有消融组必须使用相同的随机种子、超参数、训练推理流程与硬件环境；通过消融矩阵逐一验证每个创新点的独立贡献与组合效应。
-2. **三类对照强制设置**
-    必须同时设置三类对照，禁止仅与弱势方案对比：
-    - 基线对照组：原始未优化的标准方案
-    - SOTA对照组：至少3种当前领域主流方案
-    - 阴性对照组：移除核心创新点的等参方案
-3. **统计显著性规范**
-    所有指标报告**均值±标准差**，至少5次独立重复实验；组间差异优先采用t检验（需满足正态分布与方差齐性前提），不满足时采用非参数检验；仅当p<0.05且效应量达标时，方可认定为有效差异。
+# Luminas Research Standard
 
-## 二、三层实验体系与执行流程
-实验按「算子单元层→模型层级→任务能力层」逐层推进，下层不通过不得进入上层实验。
+This skill owns experiment design, the **only** definition of "lossless", statistics, and paper skeleton. Coding mechanics live in `eng-standard-skill`. Architecture identity lives in `luminas-arch-skill`.
 
-### 2.1 第一层：算子单元级实验（基础验证）
-**目标**：验证核心算法的正确性、数值精度与理论一致性
-**实验内容**：
-1. 数值正确性验证：与FP64参考实现逐元素对比，统计最大绝对误差、均方根误差、相对误差
-2. 边界鲁棒性测试：零值、极值、空输入、最小/最大尺寸输入全覆盖
-3. 理论复杂度验证：实测FLOPs、显存占用与理论计算值偏差≤5%
-4. 基础性能基准：单算子吞吐、计算效率，与硬件理论屋顶线对比
-**通过标准**：误差在预设阈值内，边界输入不崩溃，性能达到理论值70%以上
+## Priority
 
-### 2.2 第二层：模型层级实验（核心验证）
-**目标**：验证算法在完整模型中的端到端效果
-**实验内容**：
-1. PPL验证：在标准公开语料的验证集上测试困惑度变化，固定上下文窗口与解码策略
-2. 资源效率测试：不同序列长度下的显存峰值、推理吞吐、首token延迟
-3. 消融实验：逐一移除/替换每个创新模块，量化各模块的独立贡献
-**通过标准**：核心指标达到预设目标，消融实验贡献清晰可解释
+1. `luminas-arch-skill` — do not change the thesis or implement forbidden paths
+2. `eng-standard-skill` — kernels must already pass L1/L5 before model-level runs
+3. `research-skill` — this file
+4. Orchestra `ml-paper-writing` / `systems-paper-writing` / `academic-plotting` — prose, citations, figures **after** this skeleton
 
-### 2.3 第三层：任务能力级实验（最终验证）
-**目标**：验证对下游任务与实际场景的影响
-**实验内容**：
-1. 标准基准任务：通用能力、长上下文召回、推理能力等核心任务测试，采用官方标准数据集与评测脚本
-2. 梯度测试：不同序列长度、不同压缩比下的性能变化曲线，明确性能拐点
-3. 鲁棒性测试：不同模型规模、不同数据分布下的效果稳定性
-**通过标准**：任务性能下降在允许范围内，无损性结论在多场景下成立
+Do not let `0-autoresearch-skill` pivot the question or replace `lumina/` with a generic `src/` `experiments/` tree. Orchestra routing is in `luminas-arch-skill` (`references/orchestra-boundary.md`).
 
-### 2.4 全流程执行步骤
-1. 预实验摸底：小样本快速验证可行性，确定参数范围
-2. 分层正式实验：按单元→模型→任务顺序推进，每层输出完整报告
-3. 消融拆解实验：单变量控制，生成完整消融矩阵
-4. 横向对标实验：与领域主流方案在同等条件下对比
-5. 统计与分析：计算统计量，验证显著性，排除偶然结果
-6. 结论归纳：基于数据推导结论，明确适用边界与局限性
+## When to use
 
-## 三、无损KV压缩专项实验标准
-### 3.1 三级无损验证金标准
-必须同时通过三级验证，方可认定为「无损」：
-1. **数值级**：99.9%以上元素误差控制在单精度浮点运算误差上限内，误差分布无异常尖峰
-2. **模型级**：标准验证集上PPL退化无统计显著性（p>0.05），绝对退化量≤0.01
-3. **任务级**：核心基准任务准确率下降≤1%，长上下文召回能力无显著损失
+Protocol design, official runs, claiming lossless, writing results or paper sections.
 
-### 3.2 强制实验矩阵
-1. **压缩比梯度实验**：设置多档压缩比，测试精度-吞吐-显存三者的权衡曲线
-2. **序列长度梯度实验**：覆盖短、中、超长上下文全区间，验证无损性的适用范围
-3. **横向对比实验**：与主流量化、低秩分解、剪枝三类方案做同等条件对比
-4. **消融实验**：逐一验证压缩算法各组件的作用与贡献
+## Do not use
 
-### 3.3 显存适配验证
-在4GB~120GB全范围内验证：
-- 低显存下功能可用，无损性保持，优雅降级正常触发
-- 高显存下性能充分释放，压缩收益稳定
-- 无显存泄漏、无碎片化导致的性能异常下降
+- Kernel style, coverage, CMake → `eng-standard-skill`
+- "Should we just quantize?" → reject via `luminas-arch-skill`
 
-## 四、顶刊学术规范与论文结构
-### 4.1 可复现性完整披露
-所有实验必须完整披露以下信息，禁止遗漏：
-1. **环境与硬件**：GPU型号与数量、驱动版本、CUDA版本、编译器版本、系统配置
-2. **超参数**：所有模型超参数、推理参数、压缩算法参数的具体数值
-3. **数据与基准**：数据集名称、版本、分割方式、预处理流程；采用官方标准评测脚本
-4. **随机性**：所有随机种子的具体数值，至少3组不同种子的鲁棒性验证
+## Canonical lossless definition
 
-### 4.2 数据与结果规范
-1. 原始数据不可篡改，失败与异常结果完整留存并给出合理解释，禁止选择性报告最优数据
-2. 每组数据关联对应代码提交哈希，支持第三方完整复现
-3. 图表带误差棒，标注样本量与统计方法；表格采用标准三线表
-4. 核心实验代码、配置、测试脚本、复现说明随论文公开，提供可执行的一键复现脚本
+A method may be called **无损 / lossless** only if **all three** levels pass on the locked suite in [references/experiment-matrix.md](references/experiment-matrix.md). Until then: "candidate lossless path".
 
-### 4.3 论文结构强制规范（顶刊审稿标准）
-按大模型架构类顶刊标准结构撰写，每章节审查要点与强制要求如下：
+Do not write "zero degradation" or "bit-exact with the baseline network".
 
-#### 4.3.1 摘要（Abstract）
-- **强制内容**：研究问题、现有方案核心缺陷、本文核心方法、关键实验结果、核心结论；明确标注无损性指标与压缩效率核心数据
-- **审稿核心关注点**：贡献是否清晰、结果是否有冲击力、是否能体现创新价值
-- **常见拒稿风险**：模糊空泛、无核心数据、贡献不突出
+### Level 1 — numeric
 
-#### 4.3.2 引言（Introduction）
-- **强制内容**：
-  1. 研究背景与问题定义：明确长上下文KV缓存的性能瓶颈与现有压缩方案的精度损失问题
-  2. 现有方案局限性总结：分类梳理主流技术路线的核心缺陷
-  3. 本文核心贡献：分3~4点明确列出原创性贡献，每点对应可验证的实验结论
-  4. 论文结构概述
-- **审稿核心关注点**：问题是否重要、贡献是否明确、是否区分于现有工作
-- **常见拒稿风险**：贡献增量小、问题定义模糊、夸大现有方案缺陷
+Same 2-ulp rule as engineering L5:
 
-#### 4.3.3 相关工作（Related Work）
-- **强制内容**：按技术路线分类梳理（量化类、低秩类、稀疏类、架构优化类），每类总结核心思想与局限性；明确对比本文工作与各类方案的核心区别与联系
-- **审稿核心关注点**：覆盖是否全面、对比是否客观、是否正确引用领域主流工作
-- **常见拒稿风险**：简单罗列不对比、刻意回避相关工作、贬低他人工作
+`|x - x64| ≤ 2 * 2^{-23} * max(1, |x64|)`
 
-#### 4.3.4 方法（Methodology）
-- **强制内容**：
-  1. 整体架构框图与模块说明
-  2. 核心算法完整推导：公式定义、推导过程、误差边界理论证明
-  3. 无损性理论分析：给出误差上界证明，解释无损的理论依据
-  4. 计算复杂度与显存复杂度理论分析
-  5. 实现细节：关键工程优化、显存管理机制、动态分块策略
-- **审稿核心关注点**：推导是否严谨、无损性是否有理论支撑、方法是否可复现
-- **常见拒稿风险**：无理论证明、关键细节缺失、无法复现
+- No NaN / Inf
+- ≥ 99.9% of finite elements pass
+- Archived histogram of log-abs error
 
-#### 4.3.5 实验设置（Experimental Setup）
-- **强制内容**：完整披露所有实验配置，对应4.1节可复现性要求；明确数据集、评估指标、基准方案、硬件环境、参数设置
-- **审稿核心关注点**：实验是否公平、配置是否完整、基线是否合理
-- **常见拒稿风险**：基线不公平、参数不披露、实验设置有偏向
+### Level 2 — model (PPL)
 
-#### 4.3.6 实验结果与分析（Results and Analysis）
-- **强制内容**：按算子层→模型层→任务层分层呈现结果；对应三级无损验证标准；消融实验结果矩阵；横向对比结果；梯度测试曲线；所有结果附统计分析与误差棒
-- **审稿核心关注点**：结果是否支撑结论、统计是否严谨、消融是否充分、对比是否公平
-- **常见拒稿风险**：选择性报数据、无统计显著性、消融不充分
+- Primary: WikiText-2 test, stride 512, identical harness and context as uncompressed baseline
+- `ΔPPL = mean(PPL_method) - mean(PPL_baseline)` over n=5 seeds `{0,1,2,3,4}`
+- Pass: `ΔPPL ≤ 0.01` **and** two-sided Wilcoxon signed-rank on paired per-document NLL gives `p > 0.05` **and** `|Cohen's d| < 0.2`
 
-#### 4.3.7 讨论（Discussion）
-- **强制内容**：
-  1. 核心发现总结：实验结果揭示的规律与机理
-  2. 局限性讨论：明确方法的适用边界、已知缺陷、失效场景
-  3. 异常结果解释：对不符合预期的结果给出合理解释
-  4. 未来研究方向：基于当前工作的延伸方向
-- **审稿核心关注点**：认识是否客观、是否清楚自身工作的边界
-- **常见拒稿风险**：只谈优势不谈局限、过度解读结果
+### Level 3 — task
 
-#### 4.3.8 结论（Conclusion）
-- **强制内容**：简要总结核心工作与核心结论，重申核心贡献；不引入新的实验数据与观点
-- **审稿核心关注点**：结论是否与实验一致、是否简洁准确
-- **常见拒稿风险**：夸大结论、超出实验支撑范围
+- Core: MMLU 5-shot and the locked LongBench subset; long-context: RULER and NIAH at 4k and 32k (128k when claiming ultra-long)
+- Pass: each core score drops by **≤ 1.0 percentage point** vs baseline **and** RULER/NIAH difference is non-significant (`p > 0.05`) with absolute drop ≤ 1.0 point
 
-#### 4.3.9 附录与补充材料
-- **强制内容**：额外的实验结果、详细推导过程、额外消融实验、更大规模测试结果；完整的复现指南与代码链接
-- **审稿核心关注点**：补充材料是否支撑正文、复现指南是否清晰
+If any level fails, the paper must say where the lossless region ends (ratio or length).
 
-## 五、合规要求
-1. 所有用于论文结论的实验必须符合本规范，方可作为核心依据
-2. 投稿前完成可复现性自检：第三方可通过公开代码与配置复现所有核心结果
-3. 实验记录、原始数据、代码版本、文稿版本统一归档，全程可追溯
+## Statistics (single rule)
+
+- **n = 5** independent runs, seeds **`{0,1,2,3,4}`**. Deterministic kernel benches: 5 timed repeats after 2 warmup (see engineering L4).
+- Report **mean ± std**. No best-of-N.
+- Normality: Shapiro–Wilk. Variance: Levene. If both pass → Welch t-test; else Wilcoxon / Mann–Whitney.
+- Claiming **A beats B**: `p < 0.05` **and** `|Cohen's d| ≥ 0.5`.
+- Claiming **equivalence / lossless**: the Level 2 / Level 3 rules above, not `p < 0.05`.
+
+## Experiment design
+
+1. **One variable per cell.** Same seeds, hparams, harness, GPU tier.
+2. **Three controls:** uncompressed baseline; ≥3 SOTA methods from ≥2 classes; negative (novel module removed, equal param count). Defaults in [references/experiment-matrix.md](references/experiment-matrix.md).
+3. **Phase order:** operator (must pass engineering L1/L5 and roofline ≥ 70% of the stated bound) → model PPL → task. Do not start Phase 2 if Phase 1 fails.
+4. Operator complexity check: measured FLOP and peak bytes within **5%** of the paper formula, or the formula is wrong.
+
+## Execution order
+
+1. Pilot on a slice (not reportable)
+2. Lock the suite in the lab log
+3. Phase 1 → 2 → 3 reports
+4. Ablation matrix
+5. SOTA table
+6. Stats + failure cases
+7. Claims that the numbers support
+
+## Reproducibility
+
+Disclose GPU model/count, driver, CUDA, compiler, OS, every hparam, dataset name/version/split/hash, seeds, commit. Bind every table to that commit. Keep failed runs. Figures: error bars, n, test name. Tables: three-line. Public one-command reproduce for camera-ready.
+
+## Paper
+
+Skeleton and venue routing: [references/paper-structure.md](references/paper-structure.md). Fill it before applying Orchestra writing skills. `academic-plotting` must keep error bars.
+
+## Additional resources
+
+- [references/experiment-matrix.md](references/experiment-matrix.md)
+- [references/paper-structure.md](references/paper-structure.md)
