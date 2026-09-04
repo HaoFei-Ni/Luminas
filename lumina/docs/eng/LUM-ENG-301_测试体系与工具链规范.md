@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |:---|:---|
 | 状态 | 草案 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 日期 | 2026-09-05 |
 | 权威技能 | `lumina-eng-skill`（Tests） |
 | 关联文档 | `LUM-ENG-001` · `references/test-matrix.md` · `quality-gate.toml` |
@@ -33,10 +33,10 @@ uv run python -m tools.run_quality_gate
 | Stage | Module | Role |
 |---|---|---|
 | ruff | `ruff check tools tests` | Lint + docstring D |
-| python-structure | `tools.ci_quality_gate` | Size / complexity / architecture / HA（`tools` + `tests`；不含 `theory/`） |
-| c-structure | `tools.c_quality_gate` | C/CUDA structure + zero-loop hot path |
-| naming | `tools.naming_gate` | LUM-ENG-101 |
-| perf-l4 | `tools.perf_gate` | 2+5 timed runs; ≤2% regression |
+| python-structure | `tools.reporting.python_gate` | Size / complexity / architecture / HA（`tools` + `tests`；不含 `theory/`） |
+| c-structure | `tools.checks.native.gate` | C/CUDA structure + zero-loop hot path |
+| naming | `tools.checks.naming.gate` | LUM-ENG-101 |
+| perf-l4 | `tools.checks.performance.gate` | 2+5 timed runs; ≤2% regression |
 
 Commit-time (seconds): root `.pre-commit-config.yaml` → ruff + `tools.complexity_precommit` only.
 
@@ -48,4 +48,9 @@ Commit-time (seconds): root `.pre-commit-config.yaml` → ruff + `tools.complexi
 | `quality-gate.md` | Review / audit（中英双语） |
 | `quality-gate.json` | CI parsers（`verdict`, `health_score`, `findings` + `issue_en`） |
 
-Details: `tests/reports/README.md`. Do not commit generated reports.
+### 3.2 Package layout
+
+- `tools/checks/` — analyzers（architecture / native / reliability / naming / performance / python / comments）
+- `tools/reporting/` — Python structure gate + bilingual report
+- `tools/support/` — cache, Hypothesis, metrics facade
+- `tests/python/{checks,support,product}/` — mirrors the above taxonomy

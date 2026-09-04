@@ -27,6 +27,7 @@
    - `lumina/theory/`、`lumina/research/` → 方法研究 / 实验协议，非代码层。
 3. **Scheduler / Infra 职责**不因 3 层目录而消失：Python 调度仍只做编排，不做算子/KV 数学；Rust infra 若启用单独目录（`lumina/infra/`）。
 4. **接口隔离**：层头文件只暴露最小接口，不含实现；未来新头按层自含，禁止跨层 include 非契约头（历史例外见 Phase B 技术债）。
+5. **内容区四平面**（Product / Engineering / Knowledge / Research ops）见 `LUM-ARC-001` §4.1；仅作顶层导航，**不得**用来改写本节物理三层语义。
 
 ## 层间规则
 

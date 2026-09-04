@@ -117,7 +117,7 @@
 
 ## 8.1 命名门禁（专业最高档，强制）
 
-`quality-gate.toml` `[naming_standard]` → `tools.naming_gate`：
+`quality-gate.toml` `[naming_standard]` → `tools.checks.naming.gate`：
 
 - 文件：`luma_` 前缀；`baseline/` 下禁止文件名再含 `baseline`；禁用误导词与模糊段（`util`/`defs`/`helper`/`tmp`…）；缩写 `pow2` 必须写成 `power_of_two`。
 - 符号：`luma_<module>_<action…>`（≥3 段）；禁止双下划线/尾部下划线；层模块对齐；文件-符号模块前缀一致；dtype 仅 `_f32`/`_f64`。
@@ -126,7 +126,7 @@
 
 ## 8.2 性能门禁（L4 最高档，强制）
 
-`quality-gate.toml` `[perf_standard]` → `tools.perf_gate`：
+`quality-gate.toml` `[perf_standard]` → `tools.checks.performance.gate`：
 
 - 协议固定：2 warmup + 5 timed；报告 mean±std；禁止 best-of-N / 缩小 warmup。
 - 相对校准分数（bench/calib）相对 `tests/python/baselines/l4_perf_baseline.json` 延迟升高 ≤ 2%。

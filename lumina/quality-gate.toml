@@ -1,7 +1,7 @@
 # ==============================================================================
 # 代码质量门禁配置文件（全量门禁的唯一真值源）
-# 执行器：tools.ci_quality_gate / tools.c_quality_gate / naming_gate / perf_gate
-#         （经 tools.run_quality_gate）；提交前认知复杂度见 complexity_precommit
+# 执行器：tools.reporting.python_gate / tools.checks.native.gate / tools.checks.naming.gate / tools.checks.performance.gate
+#         （经 tools.run_quality_gate）；提交前认知复杂度见 tools.complexity_precommit
 # 阈值 / 开关 / 行数口径 / 排除 / 缓存 / Hypothesis 统一在此声明。工具侧仅镜像：
 #   - pyproject.toml [tool.complexipy].paths ↔ [scan].include_paths
 #   - ruff / mypy / pytest 的 cache_dir = {cache.root}/{cache.<tool>}

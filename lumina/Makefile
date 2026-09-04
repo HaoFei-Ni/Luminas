@@ -33,7 +33,7 @@ test: prep-cache
 test-ci: prep-cache
 	HYPOTHESIS_PROFILE=ci uv run pytest -n auto --junitxml=$(CACHE_ROOT)/pytest/junit.xml
 
-# 覆盖率（tools.quality_metrics 公共面，fail_under 见 pyproject）
+# 覆盖率（tools.support.metrics 公共面，fail_under 见 pyproject）
 test-cov: prep-cache
 	uv run pytest --cov --cov-report=term-missing --cov-report=xml:$(CACHE_ROOT)/pytest/coverage.xml
 
@@ -43,7 +43,7 @@ quality: prep-cache
 
 # 仅 C/CUDA 结构度量（algorithm/ + kernel/）
 quality-c: prep-cache
-	uv run python -m tools.c_quality_gate
+	uv run python -m tools.checks.native.gate
 
 clean-cache:
 	rm -rf $(CACHE_ROOT)/*

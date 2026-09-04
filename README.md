@@ -9,19 +9,18 @@
 
 架构身份与「原创 / 只读」边界由 `.cursor/skills/lumina/lumina-arc-skill` 定义。
 
-## 目录地图
+## 目录地图（四平面）
 
 ```text
 lumina/                        唯一原创内容区
-  algorithm/                   纯算法层（ANSI C）
-  kernel/                      CPU / CUDA 算子与有损基线
-  wrapper/                     平台封装（C-ABI / pybind）
-  tools/                       质量门禁与指标
-  theory/  research/  tests/   理论 / 实验协议 / 测试
-  docs/                        正式文档（arc / eng / res / pm × LUM-*）
-  refs/  experiments/          参考文献 / 实验归档
+  algorithm/ kernel/ wrapper/  Product（物理三层，冻结）
+  tools/  tests/               Engineering（门禁 + 测试）
+  docs/  theory/  refs/        Knowledge
+  research/  experiments/      Research ops
 .cursor/skills/lumina/         lumina-arc-skill · lumina-eng-skill · lumina-res-skill
 ```
+
+产物（`.venv/` `.cache/` `build/`）不进架构平面。详情：[`lumina/README.md`](lumina/README.md)。
 
 ## LUM-* 编号与权威技能
 

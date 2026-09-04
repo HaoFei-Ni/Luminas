@@ -5,8 +5,8 @@ Quality-gate artifacts under `lumina/` (generated; gitignored). Authority: `qual
 | Artifact | Role | Producer |
 |---|---|---|
 | `complexipy.json` | Raw cognitive-complexity feed | `complexipy` via `tools.run_quality_gate` |
-| `quality-gate.md` | Human verdict report（中英双语，schema `1.1`） | `tools.ci_quality_report` |
-| `quality-gate.json` | Machine-readable summary for CI（`locale=zh-CN/en`；keys 英文） | `tools.ci_quality_report` |
+| `quality-gate.md` | Human verdict report（中英双语，schema `1.1`） | `tools.reporting.report` |
+| `quality-gate.json` | Machine-readable summary for CI（`locale=zh-CN/en`；keys 英文） | `tools.reporting.report` |
 
 ## How to regenerate
 
@@ -20,7 +20,7 @@ Or Python structure only (requires an existing `complexipy.json`):
 
 ```bash
 uv run complexipy --output-format=json --output=tests/reports/complexipy.json --failed=false --quiet=true tools tests
-uv run python -m tools.ci_quality_gate
+uv run python -m tools.reporting.python_gate
 ```
 
 ## Schema notes

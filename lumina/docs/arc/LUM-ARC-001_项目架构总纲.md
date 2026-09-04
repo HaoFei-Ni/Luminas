@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |:---|:---|
 | 状态 | 草案 |
-| 版本 | 1.1 |
+| 版本 | 1.2 |
 | 日期 | 2026-09-05 |
 | 权威技能 | `lumina-arc-skill` |
 | 关联文档 | `LUM-ARC-101` · `LUM-ARC-201` · `LUM-ARC-301` · `non-goals.md` |
@@ -28,6 +28,19 @@ Luminas 为**原创架构项目**：目标是一套新的无损 KV-cache 压缩�
 
 - `lumina/` 为唯一原创代码区；
 - 两视图正交并存，禁止绕开裁决自定归属。
+
+### 4.1 内容区四平面（目录心智模型）
+
+在物理三层之上，用四平面组织 `lumina/` 顶层目录（**不改变** `algorithm/` / `kernel/` / `wrapper/` 冻结语义）：
+
+| 平面 | 目录 | 说明 |
+|---|---|---|
+| Product | `algorithm/` · `kernel/` · `wrapper/` | 可交付算子栈（物理三层，锁定） |
+| Engineering | `tools/` · `tests/` | 质量门禁与测试（见 `LUM-ENG-301`） |
+| Knowledge | `docs/` · `theory/` · `refs/` | 正式规范、方法理论、外部文献 |
+| Research ops | `research/` · `experiments/` | 协议 / lab log → `EXP-*` 归档 |
+
+`.venv/`、`.cache/`、`build/` 等为产物，不列入架构平面。`theory/` 不并入 `research/`（避免与 F1–F7 / framework 权威路径漂移）。
 
 ## 5. 源码隔离
 

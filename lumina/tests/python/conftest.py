@@ -20,8 +20,8 @@ from typing import Any
 
 import pytest
 
-from tools.cache_layout import load_cache_config, load_hypothesis_config, lumina_root, tool_cache_dir
-from tools.hypothesis_profiles import profile_settings_kwargs
+from tools.support.cache import load_cache_config, load_hypothesis_config, lumina_root, tool_cache_dir
+from tools.support.hypothesis import profile_settings_kwargs
 
 _LUMINA = lumina_root()
 _CACHE_CFG = load_cache_config(_LUMINA / "quality-gate.toml")

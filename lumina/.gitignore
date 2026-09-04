@@ -35,3 +35,6 @@ tests/reports/complexipy-report.md
 .coverage
 coverage.xml
 htmlcov/
+
+# 本地构建树（正式产物在仓库 outputs/；勿把 build/ 当成架构目录）
+build/

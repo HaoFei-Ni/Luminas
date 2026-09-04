@@ -3,10 +3,10 @@
 Always runs with cwd = ``lumina/`` so report paths stay stable:
 
 1. ``ruff check`` (includes pydocstyle D);
-2. complexipy → ``tools.ci_quality_gate`` (Python structure + inline why);
-3. ``tools.c_quality_gate`` (C/CUDA structure + inline why);
-4. ``tools.naming_gate`` (LUM-ENG-101 naming);
-5. ``tools.perf_gate`` (L4: 2+5 timed runs, ≤2% regression).
+2. complexipy → ``tools.reporting.python_gate`` (Python structure + inline why);
+3. ``tools.checks.native.gate`` (C/CUDA structure + inline why);
+4. ``tools.checks.naming.gate`` (LUM-ENG-101 naming);
+5. ``tools.checks.performance.gate`` (L4: 2+5 timed runs, ≤2% regression).
 
 Commit-time cognitive complexity uses ``tools.complexity_precommit``; do not
 fold this full suite into a hook.
@@ -21,7 +21,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from tools import quality_metrics
+from tools.support import metrics as quality_metrics
 
 _LUMINA_DIR = Path(__file__).resolve().parents[1]
 
@@ -83,10 +83,10 @@ def main() -> int:
     quality_metrics.run_complexipy(targets, report_path)
     stages = [
         ("ruff", ruff_code),
-        ("python-structure", _run_module("tools.ci_quality_gate")),
-        ("c-structure", _run_module("tools.c_quality_gate")),
-        ("naming", _run_module("tools.naming_gate")),
-        ("perf-l4", _run_module("tools.perf_gate")),
+        ("python-structure", _run_module("tools.reporting.python_gate")),
+        ("c-structure", _run_module("tools.checks.native.gate")),
+        ("naming", _run_module("tools.checks.naming.gate")),
+        ("perf-l4", _run_module("tools.checks.performance.gate")),
     ]
     return _print_summary(stages)
 

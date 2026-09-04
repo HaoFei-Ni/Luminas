@@ -17,7 +17,7 @@ import tomllib
 from pathlib import Path
 from typing import Any, Dict
 
-from tools import quality_metrics
+from tools.support import metrics as quality_metrics
 
 _LUMINA_DIR = Path(__file__).resolve().parents[1]
 
@@ -44,8 +44,8 @@ def _staged_targets(argv: list[str]) -> list[str]:
             data: Dict[str, Any] = tomllib.load(handle)
         roots = data["scan"]["include_paths"]
         return [str(_LUMINA_DIR / root) for root in roots]
-    # 必须跳过 theory/：产品认知复杂度钩子不得误伤 F1–F7 核验脚本。
     targets: list[str] = []
+    # 必须跳过 theory/：产品认知复杂度钩子不得误伤 F1–F7 核验脚本。
     for raw in argv:
         path = _normalize_staged(raw)
         if not _is_theory(path):
