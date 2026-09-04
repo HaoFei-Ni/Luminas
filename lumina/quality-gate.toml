@@ -85,16 +85,40 @@ function_names = ["main"]
 # 非必要禁止自递归；仅下列函数名可豁免（默认空）
 recursion_allowed_functions = []
 
-# ------------------------------ 注释规范（全语言统一口径） ------------------------------
-# C/C++/CUDA：文件头 banner + 函数定义前置注释 + 头文件声明前置注释（本门禁强制）。
-# Python：公共 API docstring 由 ruff D（google）强制；tests/theory 见 pyproject per-file ignore。
-# 原则：只写 why（不变量/精度/边界/为何如此），禁止复述代码 what。
-# 复杂数值/同步/别名场景须有行内注释（见 LUM-ENG-101 §8）；本门禁强制 banner+函数/声明文档。
+# ------------------------------ 注释规范（全语言统一口径，门禁强制接线） ------------------------------
+# C：c_quality_gate 读取本表 → banner / 函数前置文档 / 头文件声明文档 / 复杂行行内注释。
+# Python：ruff D 管 docstring；ci_quality_gate 另检循环行行内 #（require_inline_on_complex）。
+# 原则：只写 why；复杂场景必须贴身注释（L2 扩模式 + L4 why 语义，全路径最高档）。
 [comment_standard]
 require_file_banner = true
 require_function_doc = true
 require_header_decl_doc = true
+require_inline_on_complex = true
+require_why_semantics = true
 style = "why-not-what"
+# 仅 tests/theory 排除（故意裸循环 / 推导脚本）；生产代码全开 L4
+inline_exclude_file_patterns = ["theory/**", "tests/**"]
+# ** = 全部生产路径（tools/algorithm/kernel/wrapper）
+why_include_file_patterns = ["**"]
+
+# ------------------------------ 命名规范（LUM-ENG-101 最高档） ------------------------------
+# 无白名单、无 BASELINE 兼容宏；泛名 luma_kernels.h / luma_cuda_kernels.h 直接失败。
+[naming_standard]
+enable = true
+require_layer_prefix = true
+forbid_misleading = true
+allow_baseline_macro_aliases = false
+file_allowlist = []
+include_paths = ["algorithm", "kernel", "wrapper"]
+file_patterns = ["**/tests/**", "**/.cache/**"]
+
+# ------------------------------ 性能测试（eng-standard L4 最高档） ------------------------------
+# 协议固定：2 warmup + 5 timed；mean±std；禁止 best-of-N。
+# 裁决：相对校准分数相对仓库基线延迟升高 ≤ 2%；缺基线 / 超标直接失败。
+[perf_standard]
+enable = true
+max_latency_regression = 0.02
+baseline_path = "tests/python/baselines/l4_perf_baseline.json"
 
 # ------------------------------ C/C++/CUDA 结构度量（eng-standard） ------------------------------
 # algorithm/：运行时零循环零递归（必要有限性扫描见 loop_allowed_functions）。
@@ -122,6 +146,8 @@ enable_recursion_check = true
 enable_function_doc_check = true
 enable_file_banner_check = true
 enable_header_decl_doc_check = true
+# 与 [comment_standard].require_inline_on_complex 对齐；以 comment_standard 为准覆盖
+enable_inline_complex_check = true
 
 [c_exclusions]
 # 测试源在 tests/c，不进本门禁（由 ctest 覆盖功能）；注释仍建议齐全

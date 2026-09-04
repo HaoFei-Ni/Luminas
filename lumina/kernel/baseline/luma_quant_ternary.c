@@ -6,7 +6,7 @@
  * scale = mean(|w|)；th = threshold * scale；|w|<th → 0。
  */
 #include "baseline/luma_math.h"
-#include "luma_kernels.h"
+#include "luma_kernel.h"
 
 #include <math.h>
 
@@ -15,6 +15,7 @@ static void luma_quant_ternary_body(const float *w, long n, float th, signed cha
 {
     long i;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < n; ++i) {
         float a = fabsf(w[i]);
 

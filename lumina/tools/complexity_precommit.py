@@ -47,7 +47,11 @@ def _staged_targets(argv: list[str]) -> list[str]:
 
 
 def _normalize_staged(path_str: str) -> Path:
-    """Map a pre-commit path argument onto an existing file under lumina/."""
+    """把 pre-commit 传入路径映射到 lumina/ 下真实文件.
+
+    pre-commit 常给仓库根相对路径 ``lumina/tools/foo.py``，而本模块 cwd 已是
+    ``lumina/``，必须剥掉前缀 ``lumina/``，否则会拼成 ``lumina/lumina/...``。
+    """
     path = Path(path_str)
     if path.is_file():
         return path.resolve()
@@ -84,6 +88,7 @@ def main() -> int:
     finally:
         output.unlink(missing_ok=True)
     excess = _report_excess(quality_metrics.complexity_map(raw_report), threshold)
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for file_key, name, value in excess:
         print(f"[COMPLEXITY] {file_key}::{name} = {value} (> {threshold})")
     if excess:

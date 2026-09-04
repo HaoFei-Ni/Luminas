@@ -2,7 +2,7 @@
  * @file luma_svd.h
  * @brief 截断 SVD 私有契约：Jacobi / Gram（不进公共 C-ABI）。
  *
- * @note 公共入口仅 luma_svd_truncated（见 luma_kernels.h）。
+ * @note 公共入口仅 luma_svd_truncated（见 luma_kernel.h）。
  */
 #ifndef LUMA_SVD_H
 #define LUMA_SVD_H

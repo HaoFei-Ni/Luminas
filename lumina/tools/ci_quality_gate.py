@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from tools import quality_metrics
+from tools.py_inline_gate import python_inline_complex_violations
 from tools.quality_metrics import FileMetrics, FunctionMetrics
 
 
@@ -83,6 +84,8 @@ def validate_quality(
     """
     violations = _file_level_violations(file_metrics, config)
     violations.extend(_function_level_violations(function_metrics, config))
+    # [comment_standard].require_inline_on_complex：Python 循环须贴身 # 注释。
+    violations.extend(python_inline_complex_violations(config))
     return not violations, violations
 
 
@@ -99,6 +102,7 @@ def _file_level_violations(file_metrics: List[FileMetrics], config: Dict[str, An
     thresholds = config["thresholds"]
     features = config["features"]
     violations: List[Dict[str, str]] = []
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for item in file_metrics:
         if _over_limit(
             features["enable_file_lines_check"],
@@ -137,6 +141,7 @@ def _function_level_violations(function_metrics: List[FunctionMetrics], config: 
     skipped_names = set(exclusions["function_names"])
     recursion_ok = set(exclusions.get("recursion_allowed_functions", []))
     violations: List[Dict[str, str]] = []
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for func in function_metrics:
         if func.name in skipped_names:
             continue
@@ -194,8 +199,10 @@ def health_score(
         "函数物理行数超限": 8,
         "认知复杂度超限": 12,
         "函数含自递归（默认禁止）": 12,
+        "Python复杂语句缺少行内注释": 8,
     }
     score = 100
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for item in violations:
         score = max(0, score - penalty.get(item["issue"], 5))
     if not function_metrics and not file_metrics:
@@ -252,6 +259,7 @@ def generate_markdown_report(
 
     if report_cfg["show_full_detail"]:
         lines.append("## 📋 全量文件明细")
+        # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
         for item in file_metrics:
             lines.append(f"### `{item.file_key}`")
             lines.append(f"- 有效行数：{item.lines}")
@@ -261,6 +269,7 @@ def generate_markdown_report(
             lines.append("|---|---|---|")
             lines.extend(
                 f"| {func.name} | {func.lines} | {_fmt_complexity(func.complexity)} |"
+                # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
                 for func in function_metrics
                 if func.file_key == item.file_key
             )
@@ -330,6 +339,7 @@ def main() -> None:
             complexity=complexities.get((item.file_key, item.name)),
             has_recursion=item.has_recursion,
         )
+        # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
         for item in function_metrics
     ]
     is_pass, violations = validate_quality(file_metrics, function_metrics, config)

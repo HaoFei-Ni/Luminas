@@ -1,5 +1,5 @@
 /**
- * @file luma_kernels.h
+ * @file luma_kernel.h
  * @brief Luminas 内核稳定 C-ABI（绑定层唯一允许调用的 CPU 头）。
  *
  * 分层（LUM-ARC-101）：
@@ -8,8 +8,8 @@
  *
  * 约定：返回 int 错误码；非有限输入 → LUMA_ERR_NUMERIC；调用方分配输出；禁止原地。
  */
-#ifndef LUMA_KERNELS_H
-#define LUMA_KERNELS_H
+#ifndef LUMA_KERNEL_H
+#define LUMA_KERNEL_H
 
 #include "baseline/luma_defs.h"
 
@@ -68,4 +68,4 @@ int luma_svd_truncated(const double *x, double *u, double *s, double *vt,
 }
 #endif
 
-#endif /* LUMA_KERNELS_H */
+#endif /* LUMA_KERNEL_H */

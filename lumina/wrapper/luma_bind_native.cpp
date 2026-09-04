@@ -1,9 +1,9 @@
 /* luma_bind_native.cpp — pybind11 纯胶水。
  *
  * 允许：dtype/连续性检查、缓冲分配、GIL 释放、错误码→异常。
- * 禁止：量化、SVD、KV 数学。数值一律走 luma_kernels.h。
+ * 禁止：量化、SVD、KV 数学。数值一律走 luma_kernel.h。
  */
-#include "luma_kernels.h"
+#include "luma_kernel.h"
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>

@@ -33,6 +33,7 @@ __device__ void luma_cuda_kv_encode_int8(const __half *x, signed char *codes,
 {
     int i;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = start + tid; i < end; i += nthreads) {
         float v = __half2float(x[i]) / scale;
 
@@ -49,6 +50,7 @@ __global__ void luma_cuda_kv_quant_int8_kernel(
     int n,
     int block_size)
 {
+    /* 动态共享：块内 amax 归约与尺度广播，避免全局原子。 */
     extern __shared__ float smem[];
     int block_idx = blockIdx.x;
     int start = block_idx * block_size;

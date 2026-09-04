@@ -115,7 +115,7 @@ markers = [
     "l1: unit-level numerical / pure-logic gate",
     "l2: boundary / ugly-input gate",
     "l3: bind + kernel integration",
-    "l4: benchmark / perf gate (opt-in; not default CI)",
+    "l4: benchmark / perf gate (default CI via tools.perf_gate; 2 warmup + 5 timed, ≤2%)",
     "l5: 2-ulp lossless-numeric gate (product KV paths only)",
     "native: requires built _luma_native extension",
     "cuda: requires built _luma_cuda extension",

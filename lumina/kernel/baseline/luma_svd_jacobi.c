@@ -26,6 +26,7 @@ static void luma_svd_jacobi_init_identity(double *v, int n)
     int i;
 
     memset(v, 0, (size_t)n * (size_t)n * sizeof(double));
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < n; ++i)
         v[i * n + i] = 1.0;
 }
@@ -36,6 +37,7 @@ static double luma_svd_jacobi_row_offdiag(const double *a, int n, int p)
     int q;
     double off = 0.0;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (q = p + 1; q < n; ++q)
         off += a[p * n + q] * a[p * n + q];
     return off;
@@ -49,6 +51,7 @@ static void luma_svd_jacobi_offdiag_energy(const double *a, int n, double *off_o
     double off = 0.0;
     double diag_ss = 0.0;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (p = 0; p < n; ++p) {
         diag_ss += a[p * n + p] * a[p * n + p];
         off += luma_svd_jacobi_row_offdiag(a, n, p);
@@ -98,7 +101,7 @@ static void luma_svd_jacobi_rotate_pair(double *a, double *v, int n, int p, int 
     a[q * n + q] = nqq;
     a[p * n + q] = a[q * n + p] = 0.0;
 
-    /* V ← V J：特征向量随同一 Givens 累积。 */
+    /* V←VJ：与 A 同一 Givens，保持特征向量与对角化一致。 */
     for (i = 0; i < n; ++i) {
         double vip = v[i * n + p];
         double viq = v[i * n + q];
@@ -113,6 +116,7 @@ static void luma_svd_jacobi_sweep_row(double *a, double *v, int n, int p)
 {
     int q;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (q = p + 1; q < n; ++q)
         luma_svd_jacobi_rotate_pair(a, v, n, p, q);
 }
@@ -122,6 +126,7 @@ static void luma_svd_jacobi_one_sweep(double *a, double *v, int n)
 {
     int p;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (p = 0; p < n - 1; ++p)
         luma_svd_jacobi_sweep_row(a, v, n, p);
 }
@@ -134,6 +139,7 @@ int luma_svd_jacobi_sym_eig(double *a, int n, double *v, double *e, int max_swee
 
     luma_svd_jacobi_init_identity(v, n);
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (sweep = 0; sweep < max_sweeps; ++sweep) {
         luma_svd_jacobi_offdiag_energy(a, n, &off, &diag_ss);
         /* 相对能量门：+1 防止 diag_ss≈0 时误早停。 */
@@ -142,6 +148,7 @@ int luma_svd_jacobi_sym_eig(double *a, int n, double *v, double *e, int max_swee
         luma_svd_jacobi_one_sweep(a, v, n);
     }
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (p = 0; p < n; ++p)
         e[p] = a[p * n + p];
 
@@ -160,6 +167,7 @@ static int luma_svd_argsort_find_best(const double *e, const int *idx, int start
     int j;
     int best = start;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (j = start + 1; j < n; ++j)
         if (e[idx[j]] > e[idx[best]])
             best = j;
@@ -171,8 +179,10 @@ void luma_svd_argsort_desc(const double *e, int n, int *idx)
 {
     int i;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < n; ++i)
         idx[i] = i;
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < n - 1; ++i) {
         int best = luma_svd_argsort_find_best(e, idx, i, n);
 

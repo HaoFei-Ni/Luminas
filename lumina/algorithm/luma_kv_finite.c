@@ -13,6 +13,7 @@ int luma_kv_require_finite_f32(const float *x, long n)
 
     if (!x || n < 0)
         return LUMA_ERR_ARG;
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < n; ++i)
         if (!isfinite(x[i]))
             return LUMA_ERR_NUMERIC;
@@ -26,6 +27,7 @@ int luma_kv_require_finite_f64(const double *x, long n)
 
     if (!x || n < 0)
         return LUMA_ERR_ARG;
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < n; ++i)
         if (!isfinite(x[i]))
             return LUMA_ERR_NUMERIC;

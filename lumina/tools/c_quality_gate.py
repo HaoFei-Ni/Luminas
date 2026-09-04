@@ -1,9 +1,9 @@
-"""C/C++/CUDA structure gate: size + loops + recursion + comment policy.
+"""C/C++/CUDA 结构门禁入口：尺寸 + 循环 + 递归 + 注释策略.
 
-Comment policy (see quality-gate.toml ``[comment_standard]``):
-- file banner required
-- every function definition needs a leading why-doc
-- every header prototype needs a leading why-doc
+注释策略真值源：``quality-gate.toml`` 的 ``[comment_standard]``（接入本模块）。
+``[c_features]`` 中的文档开关与之对齐；``require_inline_on_complex`` 检查复杂行行内注释。
+
+本文件只编排阈值比对；测量逻辑在 ``c_quality_metrics``。
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from tools.c_quality_metrics import CFileMetrics, CFunctionMetrics, measure_c_fi
 
 
 def load_config(config_path: str = "quality-gate.toml") -> dict[str, Any]:
-    """Load quality-gate.toml from the lumina working directory."""
+    """从 lumina 工作目录加载质量门禁 TOML；缺失则直接退出."""
     path = Path(config_path)
     if not path.exists():
         print(f"[ERROR] 配置文件不存在: {config_path}")
@@ -28,12 +28,37 @@ def load_config(config_path: str = "quality-gate.toml") -> dict[str, Any]:
         return dict(tomllib.load(handle))
 
 
+def comment_features(config: dict[str, Any]) -> dict[str, Any]:
+    """合并 ``[comment_standard]`` 到 C 文档/行内相关 feature 开关.
+
+    原先 ``[comment_standard]`` 是死配置；此处为唯一接线，避免双源漂移。
+    """
+    features = dict(config.get("c_features", {}))
+    standard = config.get("comment_standard", {})
+    if not standard:
+        return features
+    features["enable_file_banner_check"] = bool(standard.get("require_file_banner", True))
+    features["enable_function_doc_check"] = bool(standard.get("require_function_doc", True))
+    features["enable_header_decl_doc_check"] = bool(standard.get("require_header_decl_doc", True))
+    features["enable_inline_complex_check"] = bool(standard.get("require_inline_on_complex", False))
+    features["enable_why_semantics"] = bool(standard.get("require_why_semantics", False))
+    return features
+
+
+def why_include_patterns(config: dict[str, Any]) -> list[str]:
+    """L4 作用路径；``require_why_semantics`` 关闭时返回空（仅 L0 存在性）."""
+    standard = config.get("comment_standard", {})
+    if not standard.get("require_why_semantics", False):
+        return []
+    return list(standard.get("why_include_file_patterns", ["**"]))
+
+
 def validate_c(
     files: list[CFileMetrics],
     functions: list[CFunctionMetrics],
     config: dict[str, Any],
 ) -> list[dict[str, str]]:
-    """Return violation records for enabled C size / loop / recursion / doc checks."""
+    """汇总文件级、文档级、函数级违规记录."""
     violations: list[dict[str, str]] = []
     violations.extend(_file_violations(files, config))
     violations.extend(_doc_file_violations(files, config))
@@ -42,10 +67,11 @@ def validate_c(
 
 
 def _file_violations(files: list[CFileMetrics], config: dict[str, Any]) -> list[dict[str, str]]:
-    """Check per-file line and function-count limits."""
+    """校验单文件物理行数与函数个数上限."""
     thresholds = config["c_thresholds"]
     features = config["c_features"]
     violations: list[dict[str, str]] = []
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for item in files:
         limit = thresholds["max_header_physical_lines"] if item.is_header else thresholds["max_impl_physical_lines"]
         if features["enable_file_lines_check"] and item.lines > limit:
@@ -58,14 +84,16 @@ def _file_violations(files: list[CFileMetrics], config: dict[str, Any]) -> list[
 
 
 def _doc_file_violations(files: list[CFileMetrics], config: dict[str, Any]) -> list[dict[str, str]]:
-    """Check file banners and header prototype documentation."""
-    features = config["c_features"]
+    """校验文件 banner 与头文件原型文档（开关来自 comment_standard）."""
+    features = comment_features(config)
     violations: list[dict[str, str]] = []
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for item in files:
         if features.get("enable_file_banner_check", True) and not item.has_file_banner:
             violations.append(_violation(item.file_key, "C文件缺少文件头文档注释", 0, 1))
         if item.is_header and features.get("enable_header_decl_doc_check", True):
             lines = Path(item.path).read_text(encoding="utf-8", errors="replace").splitlines()
+            # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
             for name, line in undocumented_prototypes(lines):
                 target = f"{item.file_key}::{name}@{line}"
                 violations.append(_violation(target, "C头文件声明缺少前置文档注释", 0, 1))
@@ -76,11 +104,12 @@ def _function_violations(
     functions: list[CFunctionMetrics],
     config: dict[str, Any],
 ) -> list[dict[str, str]]:
-    """Check per-function size, loops, nesting, recursion, and doc comments."""
-    features = config["c_features"]
+    """逐函数跑尺寸/循环/嵌套/递归/文档/行内复杂注释检查."""
+    features = comment_features(config)
     thresholds = config["c_thresholds"]
     exclusions = config.get("c_exclusions", {})
     violations: list[dict[str, str]] = []
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for func in functions:
         violations.extend(_one_function_violations(func, features, thresholds, exclusions))
     return violations
@@ -92,7 +121,7 @@ def _one_function_violations(
     thresholds: dict[str, Any],
     exclusions: dict[str, Any],
 ) -> list[dict[str, str]]:
-    """Collect all enabled violations for a single C/CUDA function."""
+    """单函数全部启用项；白名单不放行嵌套与行内复杂注释."""
     target = f"{func.file_key}::{func.name}"
     out: list[dict[str, str]] = []
     if features["enable_function_lines_check"] and func.lines > thresholds["max_function_physical_lines"]:
@@ -110,11 +139,15 @@ def _one_function_violations(
     doc_ok = set(exclusions.get("doc_comment_exempt_functions", []))
     if features.get("enable_function_doc_check", True) and not func.has_doc_comment and func.name not in doc_ok:
         out.append(_violation(target, "C函数缺少前置文档注释", 0, 1))
+    # 复杂语句（循环/同步/frexp 等）必须有贴身行内注释；L4 路径还要求 why 线索。
+    if features.get("enable_inline_complex_check", False) and func.uncommented_complex > 0:
+        issue = "C复杂语句缺少why行内注释" if features.get("enable_why_semantics", False) else "C复杂语句缺少行内注释"
+        out.append(_violation(target, issue, func.uncommented_complex, 0))
     return out
 
 
 def _loops_allowed(func: CFunctionMetrics, exclusions: dict[str, Any]) -> bool:
-    """Return True when this function may contain necessary single-level loops."""
+    """函数名白名单或路径 glob（如 ``kernel/**``）命中则允许必要单层循环."""
     if func.name in set(exclusions.get("loop_allowed_functions", [])):
         return True
     patterns = list(exclusions.get("loop_allowed_file_patterns", []))
@@ -122,7 +155,7 @@ def _loops_allowed(func: CFunctionMetrics, exclusions: dict[str, Any]) -> bool:
 
 
 def _violation(target: str, issue: str, current: int, limit: int) -> dict[str, str]:
-    """Build one normalized C-gate violation record."""
+    """统一违规记录字段，便于 CI 日志与后续 JSON 化."""
     return {
         "target": target,
         "issue": issue,
@@ -132,7 +165,7 @@ def _violation(target: str, issue: str, current: int, limit: int) -> dict[str, s
 
 
 def main() -> int:
-    """Run the C/CUDA structure gate and print a compact verdict."""
+    """跑 C 门禁并打印紧凑结论；无 ``[c_scan]`` 时跳过（兼容旧配置）."""
     config = load_config()
     if "c_scan" not in config:
         print("[INFO] quality-gate.toml 无 [c_scan]，跳过 C 门禁")
@@ -140,9 +173,11 @@ def main() -> int:
     files, functions = measure_c_files(
         list(config["c_scan"]["include_paths"]),
         list(config.get("c_exclusions", {}).get("file_patterns", [])),
+        why_file_patterns=why_include_patterns(config),
     )
     violations = validate_c(files, functions, config)
     print(f"[INFO] C 扫描文件 {len(files)}，函数 {len(functions)}，违规 {len(violations)}")
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for item in violations:
         print(f"  - {item['target']}: {item['issue']} {item['current']}>{item['limit']}")
     if violations:

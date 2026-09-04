@@ -77,6 +77,7 @@ static py::tuple cuda_kv_quant_int8(py::array_t<float, py::array::c_style> x, in
 
     const float *h_in = static_cast<const float *>(buf.ptr);
     std::vector<__half> h_half(static_cast<size_t>(n));
+    /* 单遍 f32→half：核入口 ABI 为 __half，避免设备侧二次转换。 */
     for (int i = 0; i < n; ++i)
         h_half[static_cast<size_t>(i)] = __float2half(h_in[i]);
 

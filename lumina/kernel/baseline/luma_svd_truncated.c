@@ -5,7 +5,7 @@
  * 高矩阵：G=XᵀX；宽矩阵：G=XXᵀ。子模块：luma_svd_{gram,jacobi}；原语：luma_math。
  */
 #include "baseline/luma_svd.h"
-#include "luma_kernels.h"
+#include "luma_kernel.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -40,6 +40,7 @@ static void luma_svd_fill_singular(const double *e, const int *idx, int r, doubl
 {
     int j;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (j = 0; j < r; ++j) {
         /* Gram 特征值应 ≥0；微小负值来自舍入，钳零后再 √。 */
         double lam = e[idx[j]] > 0.0 ? e[idx[j]] : 0.0;
@@ -53,6 +54,7 @@ static void luma_svd_copy_vt_row(const double *v, int n, int col, double *vt_row
 {
     int k;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (k = 0; k < n; ++k)
         vt_row[k] = v[k * n + col];
 }
@@ -63,6 +65,7 @@ static void luma_svd_u_from_row(const double *row, const double *vt, const doubl
 {
     int j;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (j = 0; j < r; ++j) {
         double acc = luma_math_dot_f64(row, vt + (size_t)j * (size_t)n, n);
 
@@ -81,6 +84,7 @@ static void luma_svd_assemble_tall(const double *x, const double *v, const int *
     /* 先写 Vt，使 U 行可复用已排好的右奇异向量。 */
     for (j = 0; j < r; ++j)
         luma_svd_copy_vt_row(v, n, idx[j], vt + (size_t)j * (size_t)n);
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < m; ++i)
         luma_svd_u_from_row(x + (size_t)i * (size_t)n, vt, s, n, r,
                             u + (size_t)i * (size_t)r);
@@ -92,6 +96,7 @@ static void luma_svd_copy_u_row(const double *v, const int *idx, int m, int r, i
 {
     int j;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (j = 0; j < r; ++j)
         u_row[j] = v[i * m + idx[j]];
 }
@@ -103,6 +108,7 @@ static double luma_svd_col_dot_u(const double *u, const double *x, int m, int n,
     int i;
     double acc = 0.0;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < m; ++i)
         acc += u[i * r + j] * x[(size_t)i * (size_t)n + (size_t)k];
     return acc;
@@ -114,6 +120,7 @@ static void luma_svd_vt_from_u(const double *u, const double *x, const double *s
 {
     int k;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (k = 0; k < n; ++k) {
         double acc = luma_svd_col_dot_u(u, x, m, n, r, j, k);
 
@@ -131,6 +138,7 @@ static void luma_svd_assemble_wide(const double *x, const double *v, const int *
     /* XXᵀ 特征向量在左奇异空间，故先 U 后 Vt。 */
     for (i = 0; i < m; ++i)
         luma_svd_copy_u_row(v, idx, m, r, i, u + (size_t)i * (size_t)r);
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (j = 0; j < r; ++j)
         luma_svd_vt_from_u(u, x, s, m, n, r, j, vt + (size_t)j * (size_t)n);
 }

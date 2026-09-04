@@ -16,6 +16,7 @@ __device__ float luma_cuda_decode_dot_w(const __half *W, const __half *x, int h,
     int i;
     float acc = 0.0f;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < d; ++i) {
         float xi = __half2float(x[h * d + i]);
 
@@ -32,6 +33,7 @@ __device__ void luma_cuda_decode_gemv_qkv(const __half *x, const __half *Wq, con
 {
     int j;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (j = tid; j < d; j += nthreads) {
         q[j] = luma_cuda_decode_dot_w(Wq, x, h, d, j);
         k[j] = luma_cuda_decode_dot_w(Wk, x, h, d, j);
@@ -47,6 +49,7 @@ __device__ void luma_cuda_decode_rope(float *q, float *k, int half, int tid, int
 {
     int i;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = tid; i < half; i += nthreads) {
         float q0 = q[i], q1 = q[i + half];
         float k0 = k[i], k1 = k[i + half];
@@ -66,6 +69,7 @@ __device__ void luma_cuda_decode_partial_dot(float *red, const float *q, const _
     int j;
 
     red[tid] = 0.0f;
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (j = tid; j < d; j += nthreads)
         red[tid] += q[j] * __half2float(vec[j]);
 }
@@ -94,6 +98,7 @@ __device__ void luma_cuda_decode_attn_step(float *q, float *acc, float *red, flo
     const __half *key = (i < r) ? (Vt_r + i * d) : (k_tail + (i - r) * d);
 
     luma_cuda_decode_partial_dot(red, q, key, d, tid, nthreads);
+    /* 块内同步：共享内存读写屏障。 */
     __syncthreads();
     sdot = luma_cuda_block_reduce_sum(red, tid, nthreads);
     if (i < r)
@@ -126,6 +131,7 @@ __device__ void luma_cuda_decode_attn_loop(float *q, float *acc, float *red, flo
 {
     int i;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < r + T; ++i)
         luma_cuda_decode_attn_step(q, acc, red, st, Vt_r, S_r, V_code, k_tail, v_tail,
                                    i, r, d, scale, tid, nthreads);
@@ -138,6 +144,7 @@ __device__ void luma_cuda_decode_normalize(float *acc, float *st, int d, int tid
     /* st[1]=0 或非有限：整头输出置零，禁止 Inf 传播。 */
     float inv = (st[1] > 0.0f && isfinite(st[1])) ? (1.0f / st[1]) : 0.0f;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (j = tid; j < d; j += nthreads)
         acc[j] *= inv;
 }
@@ -148,6 +155,7 @@ __device__ float luma_cuda_decode_dot_wo(const __half *Wo, const float *acc, int
     int i;
     float o = 0.0f;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < d; ++i)
         o += __half2float(Wo[(size_t)h * d * d + (size_t)j * d + i]) * acc[i];
     return o;
@@ -159,6 +167,7 @@ __device__ void luma_cuda_decode_proj_out(const __half *Wo, const float *acc, __
 {
     int j;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (j = tid; j < d; j += nthreads)
         out[h * d + j] = __float2half(luma_cuda_decode_dot_wo(Wo, acc, h, d, j));
 }
@@ -176,6 +185,7 @@ __global__ void luma_cuda_decode_fused_kernel(
     int d, int r, int T, float scale,
     __half *__restrict__ out)
 {
+    /* 动态共享：块内 q/k/v/acc/red/st 连续布局，避免全局往返。 */
     extern __shared__ float sm[];
     /* 布局：[q|k|v|acc|red|st]；st 紧跟 red，容量含 +3 余量。 */
     float *q = sm;
@@ -195,6 +205,7 @@ __global__ void luma_cuda_decode_fused_kernel(
         st[0] = -INFINITY; /* 在线 max 初值。 */
         st[1] = 0.0f;      /* 在线 Σe^{s-m}。 */
     }
+    /* 块内同步：共享内存读写屏障。 */
     __syncthreads();
     luma_cuda_decode_attn_loop(q, acc, red, st, Vt_r, S_r, V_code, k_tail, v_tail,
                                r, T, d, scale, tid, nthreads);

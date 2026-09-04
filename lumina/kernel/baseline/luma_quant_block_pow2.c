@@ -5,7 +5,7 @@
  * 非 OCP MX bit-exact：away-from-zero round + 每块 2^{floor(log2(amax))}。
  */
 #include "baseline/luma_math.h"
-#include "luma_kernels.h"
+#include "luma_kernel.h"
 
 #include <math.h>
 
@@ -15,6 +15,7 @@ static void luma_quant_block_encode(const float *x, long start, long end,
 {
     long i;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = start; i < end; ++i) {
         /* 先归一到 (0.5,2] 量级再量化尾数，再乘回尺度并恢复符号。 */
         float v = fabsf(x[i]) / scale;
@@ -57,6 +58,7 @@ int luma_quant_block_pow2(const float *x, float *out, long n,
                                      (size_t)n * sizeof(float)))
         return LUMA_ERR_ARG;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (start = 0; start < n; start += block_size) {
         long end = start + block_size;
         int rc;

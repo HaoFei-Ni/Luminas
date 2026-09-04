@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "protocol": {
+    "warmup": 2,
+    "timed": 5,
+    "max_regression": 0.02
+  },
+  "scores": {
+    "dense_saxpy_like": 4.849510726624674
+  }
+}

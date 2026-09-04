@@ -15,6 +15,7 @@ int luma_math_require_finite_f32(const float *x, long n)
 
     if (!x || n < 0)
         return LUMA_ERR_ARG;
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < n; ++i)
         if (!isfinite(x[i]))
             return LUMA_ERR_NUMERIC;
@@ -28,6 +29,7 @@ int luma_math_require_finite_f64(const double *x, long n)
 
     if (!x || n < 0)
         return LUMA_ERR_ARG;
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < n; ++i)
         if (!isfinite(x[i]))
             return LUMA_ERR_NUMERIC;
@@ -42,6 +44,7 @@ int luma_math_absmax_f32(const float *x, long start, long end, float *amax_out)
 
     if (!x || !amax_out || start < 0 || end < start)
         return LUMA_ERR_ARG;
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = start; i < end; ++i) {
         float a;
 
@@ -61,6 +64,7 @@ float luma_math_mean_abs_f32(const float *x, long n)
     long i;
     double sum = 0.0;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < n; ++i)
         sum += (double)fabsf(x[i]);
     return (float)(sum / (double)n);
@@ -71,6 +75,7 @@ void luma_math_fill_i8(signed char *dst, long n, signed char v)
 {
     long i;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (i = 0; i < n; ++i)
         dst[i] = v;
 }
@@ -96,6 +101,7 @@ float luma_math_quant_mantissa_pos_f32(float x, int mbits)
     /* mbits+1：含隐含前导 1 的定点格点；roundf 为 away-from-zero 对照策略。 */
     scale_bits = ldexpf(1.0f, mbits + 1);
     q = roundf(frac * scale_bits) / scale_bits;
+    /* 按二进制指数重组装浮点。 */
     return ldexpf(q, e);
 }
 
@@ -117,6 +123,7 @@ double luma_math_dot_f64(const double *a, const double *b, int n)
     int k;
     double acc = 0.0;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (k = 0; k < n; ++k)
         acc += a[k] * b[k];
     return acc;

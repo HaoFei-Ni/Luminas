@@ -3,7 +3,7 @@
  * L5：decode(encode(S_f32)) 与 FP64 预言机 luma_kv_ref_copy_f64 对照 2-ulp（P2）。
  * 通过本测试 ≠ 论文无损：P3 与模型/任务门仍待归档。
  */
-#include "luma_kernels.h"
+#include "luma_kernel.h"
 
 #include <math.h>
 #include <stdio.h>

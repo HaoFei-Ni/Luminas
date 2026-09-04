@@ -2,7 +2,7 @@
  *
  * 不套用 2-ulp 无损门。SVD 只在满秩时检查重构残差（验证 Jacobi，不是无损宣称）。
  */
-#include "luma_kernels.h"
+#include "luma_kernel.h"
 
 #include <math.h>
 #include <stdio.h>

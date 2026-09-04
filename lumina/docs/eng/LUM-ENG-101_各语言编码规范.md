@@ -74,7 +74,7 @@
 - 文件：`luma_<name>.<ext>`（源码）；`test_<name>.<ext>`（测试）；`LUM-XXX-NNN_<en>.md`（文档）。
 - 目录：小写英文 `snake_case`（`algorithm/ kernel/ wrapper/ theory/ research/ experiments/ refs/ docs/`）；归档 `EXP-YYYYMMDD-XXX/`。
 - **文件名一律 ASCII**：文档标题含中文时，中文只进正文标题，文件名用英文短横线（`LUM-ARC-001_architecture.md`、`refs/index.md`）。
-- 头文件：公共契约头用 `luma_<层>.h`；内部头用 `luma_<层>_internal.h`，避免 `luma_kernels.h` 这种泛名。
+- 头文件：公共契约头用 `luma_<层>.h`；内部头用 `luma_<层>_internal.h`，避免 `luma_kernel.h` 这种泛名。
 
 ## 6. 文档编号规范（LUM-XXX-NNN）
 
@@ -99,11 +99,33 @@
 
 复杂场景示例（须行内注释）：Jacobi 旋转角、在线 softmax 重标定、pow2/尾数 frexp、CUDA `__syncthreads` 前后共享状态、Gram 上三角镜像、σ≈0 置零。
 
-门禁：`quality-gate.toml` `[comment_standard]` 强制文件 banner + 函数/声明前置注释；行内注释由评审与本规范强制。
+门禁：`quality-gate.toml` `[comment_standard]` 由 `c_quality_gate` / `ci_quality_gate` **强制接线**：
+文件 banner、函数/声明前置文档、复杂语句行内注释（循环 / `__syncthreads` / `frexp`/`ldexp`/`exp2f`/`floor(log2)`；Python 为 `for`/`while` + `#`）。
+- **L0**（默认存在性）：邻接有注释即过。
+- **L4**（`require_why_semantics`）：邻接注释须命中 why 线索词，且不得是 what 模板句；默认 `why_include_file_patterns = ["**"]`（全生产路径最高档）。
+- **L2 扩模式**：另检 `__shared__` / `atomic*` 等。
+
+## 8.1 命名门禁（最高档，强制）
+
+`quality-gate.toml` `[naming_standard]` → `tools.naming_gate`：
+
+- 文件：`luma_` 前缀；`baseline/` 下禁止文件名再含 `baseline`；禁用 `mxfp` / `luminas_` / `cla` / `ata|aat` / `_cpu_`。
+- 符号：`luma_[a-z][a-z0-9_]*`；层模块对齐；dtype 仅 `_f32`/`_f64`；符号禁止含 `baseline`。
+- 宏：公共宏 `LUMA_*`；**禁止** `LUMA_BASELINE_*` 兼容别名（`allow_baseline_macro_aliases = false`）。
+- 层头：`luma_kernel.h` / `luma_cuda.h` / `luma_kv.h`；废弃泛名 `luma_kernels.h` / `luma_cuda_kernels.h` 直接失败。
+- 全量入口另跑 `ruff check`（含 docstring D）。
+
+## 8.2 性能门禁（L4 最高档，强制）
+
+`quality-gate.toml` `[perf_standard]` → `tools.perf_gate`：
+
+- 协议固定：2 warmup + 5 timed；报告 mean±std；禁止 best-of-N / 缩小 warmup。
+- 相对校准分数（bench/calib）相对 `tests/python/baselines/l4_perf_baseline.json` 延迟升高 ≤ 2%。
+- `max_latency_regression` 不得放宽超过 0.02；缺基线直接失败。
 
 ## 9. 无魔法数字（强制）
 
-容差/阈值必须具名（已落地）：`LUMA_TERNARY_NEAR_ZERO`、`LUMA_JACOBI_*`、`LUMA_SVD_SINGULAR_EPS`、`LUMA_ULP32`（旧 `LUMA_BASELINE_*` 宏保留为兼容别名）。禁止在函数体/测试体内散落裸数字。
+容差/阈值必须具名（已落地）：`LUMA_TERNARY_NEAR_ZERO`、`LUMA_JACOBI_*`、`LUMA_SVD_SINGULAR_EPS`、`LUMA_ULP32`。禁止 `LUMA_BASELINE_*` 别名与函数体/测试体内散落裸数字。
 
 ## 10. 落地顺序（不破坏语义）
 

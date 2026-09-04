@@ -8,7 +8,7 @@
 #ifndef LUMA_CUDA_H
 #define LUMA_CUDA_H
 
-#include "luma_kernels.h"
+#include "luma_kernel.h"
 
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>

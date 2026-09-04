@@ -2,15 +2,15 @@
 
 C99 / CUDA kernels for Luminas. Product symbols are `luma_kv_*`. Quantization, truncated SVD, and int8 KV are **baselines only**.
 
-> **分层现状（2026-09，LUM-ARC-101 v1）**：物理分层（`algorithm/` / `kernel/` / `wrapper/`）已执行。本目录保留有损基线声明（`luma_kernels.h`）、CUDA launchers、有损基线实现。
+> **分层现状（2026-09，LUM-ARC-101 v1）**：物理分层（`algorithm/` / `kernel/` / `wrapper/`）已执行。本目录保留有损基线声明（`luma_kernel.h`）、CUDA launchers、有损基线实现。
 
 ## Layout
 
 ```text
 lumina/kernel/
-  luma_kernels.h                         public CPU lossy C-ABI (+ algorithm/luma_kv.h)
+  luma_kernel.h                         public CPU lossy C-ABI (+ algorithm/luma_kv.h)
   luma_cuda.h                            CUDA launcher ABI
-  luma_cuda_kernels.h                    compatibility shim → luma_cuda.h
+  luma_cuda.h                    compatibility shim → luma_cuda.h
   luma_cuda_util.h                       CUDA reduce / launch validate helpers
   baseline/
     luma_defs.h                          macros / tolerances (shared base)
@@ -27,7 +27,7 @@ lumina/kernel/
   (C tests live in ../tests/c/ — see ../tests/README.md)
 
 分层复用：量化与 SVD 共享 `luma_math`；SVD 子模块经 `luma_svd.h` 互链；
-公共 ABI 只暴露 `luma_kernels.h` / `luma_cuda.h`。
+公共 ABI 只暴露 `luma_kernel.h` / `luma_cuda.h`。
 ```
 
 ## Build

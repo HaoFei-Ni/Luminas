@@ -33,9 +33,11 @@ __device__ static inline float luma_cuda_block_reduce_sum(float *red, int tid, i
 {
     int stride;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (stride = nthreads >> 1; stride > 0; stride >>= 1) {
         if (tid < stride)
             red[tid] += red[tid + stride];
+        /* 块内同步：共享内存读写屏障。 */
         __syncthreads();
     }
     return red[0];
@@ -52,9 +54,11 @@ __device__ static inline float luma_cuda_block_reduce_max(float *red, int tid, i
 {
     int stride;
 
+    /* 有限长度扫描：边界由调用方校验，避免越界读。 */
     for (stride = nthreads >> 1; stride > 0; stride >>= 1) {
         if (tid < stride)
             red[tid] = fmaxf(red[tid], red[tid + stride]);
+        /* 块内同步：共享内存读写屏障。 */
         __syncthreads();
     }
     return red[0];

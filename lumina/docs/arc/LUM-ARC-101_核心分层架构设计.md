@@ -42,10 +42,10 @@
 
 ### Phase B（已完成，2026-09-04）
 
-**原技术债**：`algorithm/` 源 `#include "luma_kernels.h"`（位于 `kernel/`），构成 algorithm→kernel 的头依赖。已按下列方案消除：
+**原技术债**：`algorithm/` 源 `#include "luma_kernel.h"`（位于 `kernel/`），构成 algorithm→kernel 的头依赖。已按下列方案消除：
 
 1. 抽出纯算法层契约 → `algorithm/luma_kv.h`（错误码、`luma_strerror`、`luma_kv_*` / `luma_kv_ref_*` 声明）。
-2. `kernel/luma_kernels.h` 只保留有损基线声明（`luma_quant_*` / `luma_svd_*`）并经 `baseline/luma_defs.h` 纳入错误码；`LUMA_CUDA_MAX_HEAD_DIM` 在 `luma_cuda.h`。
+2. `kernel/luma_kernel.h` 只保留有损基线声明（`luma_quant_*` / `luma_svd_*`）并经 `baseline/luma_defs.h` 纳入错误码；`LUMA_CUDA_MAX_HEAD_DIM` 在 `luma_cuda.h`。
 3. `luma_status.c` 随错误码定义归属 `algorithm/`（**归属决策：algorithm/，非独立 common/**）；`algorithm/` 源改 include 本层 `luma_kv.h`。
 4. 同步 `kernel/CMakeLists.txt`（源路径 `../algorithm/luma_status.c`、include 目录加 `../algorithm`）与各 README。
 

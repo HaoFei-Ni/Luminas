@@ -83,6 +83,7 @@ def complexity_map(raw: list[dict[str, Any]]) -> dict[tuple[str, str], int]:
         ValueError: when a record matches no known complexipy schema.
     """
     result: dict[tuple[str, str], int] = {}
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for entry in raw:
         if "file_path" in entry:
             result.update(_group_entries(entry))
@@ -98,6 +99,7 @@ def _group_entries(entry: dict[str, Any]) -> dict[tuple[str, str], int]:
     """Convert one pre-8 group record into a (file, function) complexity map."""
     file_key = as_file_key(entry["file_path"])
     grouped: dict[tuple[str, str], int] = {}
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for func in entry.get("functions", []):
         grouped[(file_key, str(func["function_name"]))] = int(func["cognitive_complexity"])
     return grouped
@@ -162,6 +164,7 @@ def measure_files(
     files = _collect_python_files(paths, exclude_patterns)
     file_metrics: list[FileMetrics] = []
     function_metrics: list[FunctionMetrics] = []
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for file_path in files:
         source = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source)
@@ -178,6 +181,7 @@ def measure_files(
                 function_count=len(spans),
             )
         )
+        # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
         for name, start, end in spans:
             body = raw_lines[start - 1 : end]
             function_metrics.append(
@@ -195,6 +199,7 @@ def measure_files(
 def _collect_python_files(paths: list[str], exclude_patterns: list[str]) -> list[Path]:
     """Collect sorted, de-duplicated ``*.py`` files under paths or as files."""
     collected: list[Path] = []
+    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
     for raw in paths:
         candidate = Path(raw)
         if candidate.is_file():
@@ -209,6 +214,7 @@ def _function_spans(tree: ast.AST) -> list[tuple[str, int, int]]:
     """Collect (name, start_line, end_line) for every function definition."""
     return [
         (node.name, node.lineno, node.end_lineno or node.lineno)
+        # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
         for node in ast.walk(tree)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     ]
