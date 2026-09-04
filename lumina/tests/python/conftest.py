@@ -17,7 +17,7 @@ profile 一览
 ============
 dev
     本地默认。随机搜索 + 较大样本预算；反例与最小化中间态持久化到
-    ``test/.cache/hypothesis``，避免默认在 CWD 生成 ``.hypothesis``。
+    ``.cache/hypothesis``，避免默认在 CWD 生成 ``.hypothesis``。
 ci
     CI 确定性。``derandomize=true``：每次 CI 每个测试的输入序列逐字节一致；
     语义上隐含 ``database=None``，CI 不读写示例库。
@@ -59,9 +59,9 @@ def _install_hypothesis_profiles() -> None:
     if _HYP_SETTINGS is None or _HYP_DB is None:
         return
 
-    # 锚定 lumina/ 根（conftest.py 位于 lumina/tests/python/，向上三级），
-    # 与 pytest cache_dir / mypy cache_dir 共用 test/.cache 收敛约定。
-    cache_root = Path(__file__).resolve().parents[2] / "test" / ".cache"
+    # 锚定 lumina/ 根（conftest.py 位于 lumina/tests/python/，向上两级到 tests/ 再一级到根），
+    # 与 pytest / mypy / ruff 共用 .cache/ 收敛约定（勿使用 test/，与 tests/ 混淆）。
+    cache_root = Path(__file__).resolve().parents[2] / ".cache"
 
     _HYP_SETTINGS.register_profile(
         "dev",

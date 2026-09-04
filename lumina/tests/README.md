@@ -24,7 +24,7 @@ uv run pytest -m "not native and not cuda"
 uv run pytest -m "native or l5"
 
 # CI 确定性档（Hypothesis derandomize + 并行 + JUnit）
-HYPOTHESIS_PROFILE=ci uv run pytest -n auto --junitxml=test/.cache/pytest/junit.xml
+HYPOTHESIS_PROFILE=ci uv run pytest -n auto --junitxml=.cache/pytest/junit.xml
 
 # 覆盖率（quality_metrics 公共面）
 uv run pytest --cov --cov-report=term-missing

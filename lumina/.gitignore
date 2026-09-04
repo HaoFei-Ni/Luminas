@@ -10,8 +10,9 @@
 __pycache__/
 *.pyc
 
-# 工具缓存（pytest/mypy/ruff 统一收敛到 test/.cache，见 pyproject.toml）
-test/.cache/
+# 工具缓存（pytest/mypy/ruff/hypothesis 统一收敛到 .cache/，见 pyproject.toml）
+# 注意：测试源码在 tests/，勿再建 test/ 目录
+.cache/
 .pytest_cache/
 .mypy_cache/
 .hypothesis/

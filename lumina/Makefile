@@ -1,9 +1,9 @@
 # Makefile — lumina Python 工具链本地入口
-# 缓存统一收敛至 test/.cache；命令经 uv run，保证与 pyproject 锁版一致。
+# 缓存统一收敛至 .cache/（测试源码在 tests/）；命令经 uv run，保证与 pyproject 锁版一致。
 # 入口：make lint / make test / make test-ci / make all / make clean-cache
 
 SHELL := /bin/bash
-CACHE_ROOT := ./test/.cache
+CACHE_ROOT := ./.cache
 
 export UV_CACHE_DIR := $(CACHE_ROOT)/uv
 export HF_HOME := $(CACHE_ROOT)/huggingface
@@ -48,4 +48,4 @@ help:
 	@echo "  make test       pytest（本地默认）"
 	@echo "  make test-ci    pytest CI 档（-n auto + junit）"
 	@echo "  make test-cov   pytest + coverage"
-	@echo "  make clean-cache 清空 test/.cache"
+	@echo "  make clean-cache 清空 .cache/"
