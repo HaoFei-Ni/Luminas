@@ -40,6 +40,15 @@ lumina/                       源码与内容（唯一原创区）
 - 门禁矩阵：`.cursor/skills/lumina/eng-standard-skill/references/test-matrix.md`
 - 非目标清单：`.cursor/skills/lumina/luminas-arch-skill/references/non-goals.md`
 
+## 相关外部仓库（cross-ref）
+
+> Luminas 架构锁不变：本仓库只做原创无损 KV 压缩。模型/架构集成类实验不在此进行。
+
+- `D:\data\spb2-h1-m3`（分支 `h1-m3-integration`）— SpikingBrain2.0 × Falcon-H1 × Mamba-3 集成项目（独立克隆，含 M0 设计文档）。
+- `D:\data\SpikingBrain2.0` — spb2 上游真源（本仓库 `spb2/` 等的只读参考来源）。
+- `D:\data\mamba`、`D:\data\Falcon-H1` — Mamba-3 / Falcon-H1 参考源码（第三方，许可与归属见其仓库）。
+
+
 ---
 
 ---
