@@ -28,17 +28,20 @@ from typing import Any
 
 from tools.cache_layout import prepare_complexipy_cwd
 from tools.py_recursion import self_recursive_names
+from tools.py_structure_metrics import measure_function
 
 
 @dataclass(frozen=True)
 class FunctionMetrics:
-    """Per-function metrics: AST lines, optional complexity, self-recursion."""
+    """Per-function metrics: AST lines, complexities, nesting, self-recursion."""
 
     file_key: str
     name: str
     lines: int
     complexity: int | None
     has_recursion: bool = False
+    cyclomatic: int | None = None
+    control_nesting: int | None = None
 
 
 @dataclass(frozen=True)
@@ -52,8 +55,20 @@ class FileMetrics:
 
 
 def as_file_key(path: str | Path) -> str:
-    """Normalize a path to a forward-slash key comparable across schemas."""
-    return Path(path).as_posix()
+    """Normalize a path to a forward-slash key relative to lumina/ when possible.
+
+    complexipy may emit absolute Windows paths (``//?/D:/.../lumina/tools/...``)
+    when launched with ``cwd=.cache``; measure_files uses repo-relative keys.
+    """
+    text = str(path).replace("\\", "/")
+    if text.startswith("//?/"):
+        text = text[4:]
+    parts = Path(text).parts
+    # 截到 lumina/ 之后：complexipy 绝对路径须与 scan 相对键对齐，避免认知复杂度漏检。
+    for index, part in enumerate(parts):
+        if part.lower() == "lumina" and index + 1 < len(parts):
+            return Path(*parts[index + 1 :]).as_posix()
+    return Path(text).as_posix()
 
 
 def venv_executable(name: str) -> Path:
@@ -177,26 +192,37 @@ def measure_files(
         raw_lines = source.splitlines()
         file_key = as_file_key(file_path)
         total = _count_significant(raw_lines, count_blank_lines, count_comment_lines)
-        spans = _function_spans(tree)
         recursive = self_recursive_names(tree)
+        fn_nodes: list[ast.AST] = []
+        # 须保留 AST 句柄才能测圈复杂度/嵌套，避免仅用行号 span 丢失结构。
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                fn_nodes.append(node)  # noqa: PERF401
         file_metrics.append(
             FileMetrics(
                 file_key=file_key,
                 path=str(file_path),
                 lines=total,
-                function_count=len(spans),
+                function_count=len(fn_nodes),
             )
         )
-        # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
-        for name, start, end in spans:
+        # 按定义节点计量：行数口径与 structure 共享同一节点，避免双扫漂移。
+        for node in fn_nodes:
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            start = node.lineno
+            end = node.end_lineno or node.lineno
             body = raw_lines[start - 1 : end]
+            structure = measure_function(node)
             function_metrics.append(
                 FunctionMetrics(
                     file_key=file_key,
-                    name=name,
+                    name=node.name,
                     lines=_count_significant(body, count_blank_lines, count_comment_lines),
                     complexity=None,
-                    has_recursion=name in recursive,
+                    has_recursion=node.name in recursive,
+                    cyclomatic=structure.cyclomatic,
+                    control_nesting=structure.control_nesting,
                 )
             )
     return file_metrics, function_metrics
@@ -214,16 +240,6 @@ def _collect_python_files(paths: list[str], exclude_patterns: list[str]) -> list
         elif candidate.is_dir():
             collected.extend(candidate.rglob("*.py"))
     return sorted({file_path for file_path in collected if not excluded(as_file_key(file_path), exclude_patterns)})
-
-
-def _function_spans(tree: ast.AST) -> list[tuple[str, int, int]]:
-    """Collect (name, start_line, end_line) for every function definition."""
-    return [
-        (node.name, node.lineno, node.end_lineno or node.lineno)
-        # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
-        for node in ast.walk(tree)
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-    ]
 
 
 def _count_significant(lines: list[str], count_blank_lines: bool, count_comment_lines: bool) -> int:

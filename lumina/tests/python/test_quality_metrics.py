@@ -23,6 +23,12 @@ def test_as_file_key_normalizes_separators() -> None:
     assert quality_metrics.as_file_key(Path("tests/python/a.py")) == "tests/python/a.py"
 
 
+def test_as_file_key_strips_lumina_absolute_prefix() -> None:
+    """Absolute complexipy paths under lumina/ collapse to repo-relative keys."""
+    assert quality_metrics.as_file_key(r"//?/D:/data/Luminas/lumina/tools/a.py") == "tools/a.py"
+    assert quality_metrics.as_file_key("/home/x/lumina/tools/a.py") == "tools/a.py"
+
+
 @pytest.mark.l1
 def test_complexity_map_flat_schema_v8() -> None:
     """complexipy 8+ flat records normalize to (file_key, name) → complexity."""

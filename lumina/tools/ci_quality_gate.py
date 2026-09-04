@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Full quality gate: four checks plus a health-overview Markdown report.
+"""Full quality gate: structure checks plus a health-overview Markdown report.
 
-本执行器为「全量四项质量门禁」的 CI/本地手动入口（提交前的秒级认知复杂度
+本执行器为「全量质量门禁」的 CI/本地手动入口（提交前的秒级认知复杂度
 强校验见 complexity_precommit.py）。职责：
 
 1. 读取 quality-gate.toml（阈值/开关/排除/报告文案）。
 2. 复杂度取自 complexipy JSON（多版本 schema 由 quality_metrics 归一化）；
-   行数指标用 Python AST 原生测量，与 complexipy 版本彻底解耦。
-3. 执行四项校验：单文件物理行数、单文件函数数量、单函数物理行数、认知复杂度。
+   行数 / 圈复杂度 / 控制嵌套用 Python AST 原生测量。
+3. 执行校验：文件行数、函数数量、函数行数、认知复杂度、圈复杂度、控制嵌套、递归、行内注释。
 4. 生成对齐行业结构的 Markdown 报告：代码健康度概览 + 违规汇总 + 全量明细。
 
 依赖扫描链（工作目录须为 lumina/）：
@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from tools import quality_metrics
+from tools.py_function_gate import function_structure_violations
 from tools.py_inline_gate import python_inline_complex_violations
 from tools.quality_metrics import FileMetrics, FunctionMetrics
 
@@ -83,7 +84,7 @@ def validate_quality(
         (whether every check passed, violation records).
     """
     violations = _file_level_violations(file_metrics, config)
-    violations.extend(_function_level_violations(function_metrics, config))
+    violations.extend(function_structure_violations(function_metrics, config))
     # [comment_standard].require_inline_on_complex：Python 循环须贴身 # 注释。
     violations.extend(python_inline_complex_violations(config))
     return not violations, violations
@@ -133,43 +134,6 @@ def _file_level_violations(file_metrics: List[FileMetrics], config: Dict[str, An
     return violations
 
 
-def _function_level_violations(function_metrics: List[FunctionMetrics], config: Dict[str, Any]) -> List[Dict[str, str]]:
-    """Check per-function lines, cognitive complexity, and self-recursion."""
-    thresholds = config["thresholds"]
-    features = config["features"]
-    exclusions = config["exclusions"]
-    skipped_names = set(exclusions["function_names"])
-    recursion_ok = set(exclusions.get("recursion_allowed_functions", []))
-    violations: List[Dict[str, str]] = []
-    # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
-    for func in function_metrics:
-        if func.name in skipped_names:
-            continue
-        target = f"{func.file_key}::{func.name}"
-        if _over_limit(
-            features["enable_function_lines_check"],
-            func.lines,
-            thresholds["max_function_physical_lines"],
-        ):
-            violations.append(
-                build_violation(target, "函数物理行数超限", func.lines, thresholds["max_function_physical_lines"])
-            )
-        if _over_limit(
-            features["enable_cognitive_complexity_check"],
-            func.complexity,
-            thresholds["max_cognitive_complexity"],
-        ):
-            complexity = func.complexity
-            if complexity is None:
-                raise RuntimeError("complexity missing after over-limit check")
-            violations.append(
-                build_violation(target, "认知复杂度超限", complexity, thresholds["max_cognitive_complexity"])
-            )
-        if features.get("enable_recursion_check", True) and func.has_recursion and func.name not in recursion_ok:
-            violations.append(build_violation(target, "函数含自递归（默认禁止）", 1, 0))
-    return violations
-
-
 _GRADE_A_SCORE = 90
 _GRADE_B_SCORE = 80
 _GRADE_C_SCORE = 70
@@ -198,6 +162,8 @@ def health_score(
         "单文件函数数量超限": 10,
         "函数物理行数超限": 8,
         "认知复杂度超限": 12,
+        "圈复杂度超限": 12,
+        "控制嵌套超限": 10,
         "函数含自递归（默认禁止）": 12,
         "Python复杂语句缺少行内注释": 8,
     }
@@ -238,7 +204,7 @@ def generate_markdown_report(
         "## 代码健康度概览",
         f"- **健康评分：{score}（等级 {grade}）**",
         "- 评分规则：满分 100，按违规类别扣分（文件行数 -15 / 函数数 -10 / "
-        "函数行数 -8 / 认知复杂度 -12），A ≥90 / B ≥80 / C ≥70 / D <70",
+        "函数行数 -8 / 认知·圈复杂度 -12 / 嵌套 -10），A ≥90 / B ≥80 / C ≥70 / D <70",
         "",
     ]
     complexities = [item.complexity for item in function_metrics if item.complexity is not None]
@@ -306,6 +272,8 @@ def _threshold_rows(thresholds: Dict[str, Any]) -> List[str]:
     """Build the configured-threshold table rows."""
     return [
         f"- 认知复杂度 ≤ {thresholds['max_cognitive_complexity']}",
+        f"- 圈复杂度 ≤ {thresholds.get('max_cyclomatic_complexity', '-')}",
+        f"- 控制嵌套 ≤ {thresholds.get('max_control_nesting_depth', '-')}",
         f"- 单文件物理行数 ≤ {thresholds['max_file_physical_lines']}",
         f"- 单文件函数数量 ≤ {thresholds['max_function_count_per_file']}",
         f"- 单函数物理行数 ≤ {thresholds['max_function_physical_lines']}",
@@ -338,6 +306,8 @@ def main() -> None:
             lines=item.lines,
             complexity=complexities.get((item.file_key, item.name)),
             has_recursion=item.has_recursion,
+            cyclomatic=item.cyclomatic,
+            control_nesting=item.control_nesting,
         )
         # 单遍扫描：边界由调用方/前置校验保证，避免越界与重复读。
         for item in function_metrics

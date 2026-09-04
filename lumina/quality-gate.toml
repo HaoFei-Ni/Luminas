@@ -1,19 +1,16 @@
 # ==============================================================================
 # 代码质量门禁配置文件（全量门禁的唯一真值源）
-# 执行器：tools.ci_quality_gate / tools.c_quality_gate（经 tools.run_quality_gate）
-# 阈值 / 开关 / 行数口径 / 排除规则 / 统一缓存路径 统一在此声明。工具侧仅保留最小镜像：
-#   - pyproject.toml 的 [tool.complexipy].paths 须与下方 [scan].include_paths
-#     保持一致（供手动裸跑 uv run complexipy 时使用；正式入口
-#     python -m tools.run_quality_gate 以 [scan].include_paths 为准显式传参）
-#   - ruff / mypy / pytest 的 cache_dir 须等于 [cache].root / [cache].<tool>
-#   - 勿在 pyproject.toml 再写门禁阈值或缓存真值副本（cache_dir 仅为工具原生键镜像）
-# 修改门禁规则只需修改本文件，无需改动业务代码。
+# 执行器：tools.ci_quality_gate / tools.c_quality_gate / naming_gate / perf_gate
+#         （经 tools.run_quality_gate）；提交前认知复杂度见 complexity_precommit
+# 阈值 / 开关 / 行数口径 / 排除 / 缓存 / Hypothesis 统一在此声明。工具侧仅镜像：
+#   - pyproject.toml [tool.complexipy].paths ↔ [scan].include_paths
+#   - ruff / mypy / pytest 的 cache_dir = {cache.root}/{cache.<tool>}
+#   - pre-commit ruff：`--cache-dir lumina/{cache.root}/{cache.ruff}`（cwd=仓库根）
+# 修改门禁规则只需改本文件，勿在业务代码里再写阈值。
 # ==============================================================================
 
-# ------------------------------ 统一工具缓存（单一真值源） ------------------------------
-# pytest / mypy / ruff 的原生 cache_dir 写在 pyproject.toml，取值必须等于
-# ``{root}/{pytest|mypy|ruff}``。hypothesis / complexipy 由 tools 读本节落地。
-# pre-commit 的 RUFF_CACHE_DIR 须为 ``lumina/{root}/{ruff}``（钩子 cwd 在仓库根）。
+# ------------------------------ 统一工具缓存 ------------------------------
+# pytest / mypy / ruff 原生键在 pyproject；hypothesis / complexipy 由 tools 读本节。
 [cache]
 root = ".cache"
 pytest = "pytest"
@@ -21,142 +18,116 @@ mypy = "mypy"
 ruff = "ruff"
 hypothesis = "hypothesis"
 uv = "uv"
-# complexipy 硬编码相对进程 cwd 的目录名；正式入口以 cwd=root 启动使其落在 root 下
+# complexipy 硬编码相对进程 cwd 的目录名；正式入口 cwd=root，落在 root 下
 complexipy_vendor = ".complexipy_cache"
 
 # ------------------------------ Hypothesis profile（无法写入 pyproject） ------------------------------
-# 官方 pytest 插件不读 hypothesis_* ini（hypothesis#2434）；profile 真值源在此，
-# tests/python/conftest.py 只加载、不内嵌数值。
+# 官方插件不读 hypothesis_* ini（hypothesis#2434）；conftest 只加载本节。
 [hypothesis]
 default_profile = "dev"
 
 [hypothesis.profiles.dev]
-max_examples = 1000
-deadline_ms = 3000
+# max_examples：单属性最大样本数（覆盖度↑耗时↑）；本地常用 500~1000，深度回归可至 2000
+max_examples = 1500
+# deadline_ms：单用例超时毫秒；dev 可 1000~5000
+deadline_ms = 2500
+# print_blob：失败时打印完整反例，便于本地定位
 print_blob = true
+# persist_examples：持久化失败例优先复现；稳定后可关，避免历史污染
 persist_examples = true
 
 [hypothesis.profiles.ci]
+# CI 速度优先：样本宜 200~500；夜间回归可提至 1000
 max_examples = 300
+# CI 超时宜 ≤3000，避免堵流水线
 deadline_ms = 3000
 print_blob = true
+# derandomize：固定种子，CI 必须可复现
 derandomize = true
+# CI 不落库，保持无状态
 persist_examples = false
 
-# ------------------------------ 扫描范围（单一真值源） ------------------------------
+# ------------------------------ Python 扫描范围 ------------------------------
+# 相对 lumina/；wrapper/ 为 C++/pybind，不进 Python 门禁
 [scan]
-# 目录/文件均相对 lumina/ 解析；与 pyproject.toml [tool.complexipy].paths 保持一致
-# wrapper/ 为 C++/pybind，不进 Python 门禁扫描
 include_paths = [
     "tools",
     "tests",
     "theory",
 ]
 
-# ------------------------------ 阈值配置 ------------------------------
-# 行业参考：
-#   认知复杂度：≤10 优秀，≤15 良好，>20 高风险
-#   单文件行数：≤200 优秀，≤300 可接受，>400 建议拆分
-#   单文件函数数：≤10 优秀，≤12 可接受，过多说明模块职责发散
-#   单函数行数：≤50 优秀，≤80 可接受，>100 建议拆分子函数
-# 说明：分层依赖边界由 ruff TID251 banned-api 强制；本门禁为扁平阈值。
-# eng-standard：非必要禁止递归；Python 允许编排层循环控制（见 [features]）。
+# ------------------------------ Python 阈值 ------------------------------
+# 最优目标（渐进）：认知≤8 / 文件行≤300 / 函数数≤8 / 函数行≤50 / 圈≤8 / 嵌套≤3
+# 现行：存量可过；认知/函数数/圈/嵌套仍高于最优，拆分后下调。
 [thresholds]
-# 认知复杂度上限（SonarQube 同款指标，反映人脑理解负担）；提交前强校验同用此值
 max_cognitive_complexity = 15
-# 单个 Python 文件物理总行数上限（口径见 [line_counting]）
-max_file_physical_lines = 400
-# 单个 Python 文件内允许的最大函数数量
+max_file_physical_lines = 300
 max_function_count_per_file = 12
-# 单个函数物理源码行数上限（口径见 [line_counting]）
-max_function_physical_lines = 80
+max_function_physical_lines = 60
+max_cyclomatic_complexity = 17
+max_control_nesting_depth = 5
 
-# ------------------------------ 行数统计口径（AST 原生测量） ------------------------------
-# 只影响行数类校验（文件行数 / 函数行数）；认知复杂度与函数数量不随行数口径变化。
 [line_counting]
-# True=空行计入物理行数；False=不计入（推荐：物理行数衡量承载逻辑的代码量）
 count_blank_lines = false
-# True=纯注释行计入物理行数；False=不计入（行尾注释属于代码行，始终计入）
 count_comment_lines = false
 
-# ------------------------------ 功能开关 ------------------------------
-# 架构边界 / 重复率 / docstring / 性能反模式：由 ruff（TID/ERA/PERF/D）承担。
-# Python：禁止自递归；允许 for/while（编排/wiring/测试循环控制，见 LUM-ENG-001）。
+# 架构边界 / docstring / 性能反模式由 ruff（TID/ERA/PERF/D）承担，不在此重复。
+# Python 循环：编排层允许（无 enable_loop_check）；C 侧循环见 [c_features]。
 [features]
 enable_file_lines_check = true
 enable_function_count_check = true
 enable_function_lines_check = true
 enable_cognitive_complexity_check = true
+enable_cyclomatic_complexity_check = true
+enable_control_nesting_check = true
 enable_recursion_check = true
-enable_loop_check = false
 
-# ------------------------------ 报告输出配置 ------------------------------
+# ------------------------------ 报告 ------------------------------
 [report]
-# complexipy 原始 JSON 数据文件路径（机器读取，复杂度数据源）
 json_report_path = "complexipy-report.json"
-# Markdown 格式报告输出路径（人工审阅，含健康度概览/违规汇总/全量明细）
 markdown_report_path = "complexipy-report.md"
-# 报告主标题
 title = "代码复杂度质量报告"
-# 报告描述说明
-description = "校验维度：认知复杂度、文件/函数行数、单文件函数数、自递归（Python 允许编排循环）"
-# 是否输出全量函数明细表格
+description = "校验维度：认知/圈复杂度、控制嵌套、文件/函数行数、单文件函数数、自递归"
 show_full_detail = true
-# 违规汇总表格表头
 violation_headers = ["检查对象", "问题类型", "当前值", "阈值上限"]
-# 函数明细表格表头
 function_headers = ["函数名称", "物理行数", "认知复杂度"]
-# 校验通过提示文案
 pass_text = "✅ 全部校验通过"
-# 校验未通过提示文案
 fail_text = "❌ 质量门禁未通过，阻断提交/发布"
 
-# ------------------------------ 排除规则（Python 门禁） ------------------------------
 [exclusions]
 file_patterns = [".cache/**", "__pycache__/**"]
 function_names = ["main"]
-# 非必要禁止自递归；仅下列函数名可豁免（默认空）
 recursion_allowed_functions = []
 
-# ------------------------------ 注释规范（全语言统一口径，门禁强制接线） ------------------------------
-# C：c_quality_gate 读取本表 → banner / 函数前置文档 / 头文件声明文档 / 复杂行行内注释。
-# Python：ruff D 管 docstring；ci_quality_gate 另检循环行行内 #（require_inline_on_complex）。
-# 原则：只写 why；复杂场景必须贴身注释（L2 扩模式 + L4 why 语义，全路径最高档）。
+# ------------------------------ 注释（全语言；C 文档开关真值源） ------------------------------
+# C：覆盖 [c_features] 中的 banner/函数文档/头文件声明/行内注释开关。
+# Python：ruff D + ci 行内 #（require_inline_on_complex）；tests/theory 排除裸循环。
 [comment_standard]
 require_file_banner = true
 require_function_doc = true
 require_header_decl_doc = true
 require_inline_on_complex = true
 require_why_semantics = true
-style = "why-not-what"
-# 仅 tests/theory 排除（故意裸循环 / 推导脚本）；生产代码全开 L4
 inline_exclude_file_patterns = ["theory/**", "tests/**"]
-# ** = 全部生产路径（tools/algorithm/kernel/wrapper）
 why_include_file_patterns = ["**"]
 
-# ------------------------------ 命名规范（LUM-ENG-101 最高档） ------------------------------
-# 无白名单、无 BASELINE 兼容宏；泛名 luma_kernels.h / luma_cuda_kernels.h 直接失败。
+# ------------------------------ 命名（LUM-ENG-101；规则在 naming_rules.py） ------------------------------
 [naming_standard]
 enable = true
-require_layer_prefix = true
-forbid_misleading = true
 allow_baseline_macro_aliases = false
 file_allowlist = []
 include_paths = ["algorithm", "kernel", "wrapper"]
 file_patterns = ["**/tests/**", "**/.cache/**"]
 
-# ------------------------------ 性能测试（eng-standard L4 最高档） ------------------------------
-# 协议固定：2 warmup + 5 timed；mean±std；禁止 best-of-N。
-# 裁决：相对校准分数相对仓库基线延迟升高 ≤ 2%；缺基线 / 超标直接失败。
+# ------------------------------ 性能 L4 ------------------------------
 [perf_standard]
 enable = true
 max_latency_regression = 0.02
 baseline_path = "tests/python/baselines/l4_perf_baseline.json"
 
-# ------------------------------ C/C++/CUDA 结构度量（eng-standard） ------------------------------
-# algorithm/：运行时零循环零递归（必要有限性扫描见 loop_allowed_functions）。
-# kernel/：硬件映射/有损基线允许单层循环，禁止嵌套与递归。
-# wrapper/：pybind 胶水，同样强制注释；禁止写数值算法。
+# ------------------------------ C/C++/CUDA 结构度量 ------------------------------
+# algorithm/：运行时零循环（有限性扫描见 loop_allowed_functions）。
+# kernel|wrapper：允许单层循环，禁止嵌套与递归。
 [c_scan]
 include_paths = ["algorithm", "kernel", "wrapper"]
 
@@ -165,10 +136,10 @@ max_header_physical_lines = 300
 max_impl_physical_lines = 500
 max_function_physical_lines = 80
 max_functions_per_file = 15
-# 默认每个函数 0 个循环；白名单内仍不得超过嵌套深度
 max_loop_count_per_function = 0
 max_loop_nesting_depth = 1
 
+# 文档/行内开关勿写于此：真值源 [comment_standard]（c_quality_gate.comment_features 覆盖）。
 [c_features]
 enable_file_lines_check = true
 enable_function_count_check = true
@@ -176,18 +147,11 @@ enable_function_lines_check = true
 enable_loop_check = true
 enable_loop_nesting_check = true
 enable_recursion_check = true
-enable_function_doc_check = true
-enable_file_banner_check = true
-enable_header_decl_doc_check = true
-# 与 [comment_standard].require_inline_on_complex 对齐；以 comment_standard 为准覆盖
-enable_inline_complex_check = true
 
 [c_exclusions]
-# 测试源在 tests/c，不进本门禁（由 ctest 覆盖功能）；注释仍建议齐全
 file_patterns = ["**/tests/**", "**/.cache/**"]
-# 必要单层循环：算子适配层 / CUDA 基线
 loop_allowed_file_patterns = ["kernel/**", "wrapper/**"]
-# algorithm 变长有限性门禁（落地 SIMD/LUT Enc 后应删除并清表白名单）
+# 变长有限性门禁；SIMD/LUT Enc 落地后删除并清空本表白名单
 loop_allowed_functions = [
     "luma_kv_require_finite_f32",
     "luma_kv_require_finite_f64",
