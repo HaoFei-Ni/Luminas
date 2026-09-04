@@ -57,6 +57,7 @@ int luma_kv_ref_copy_f64(const double *x, long n, double *out);
  * 返回：LUMA_OK | LUMA_ERR_ARG | LUMA_ERR_NUMERIC
  */
 int luma_kv_encode_f32(const float *x, long n, float *enc, long enc_cap, long *enc_len);
+/* 恒等 Dec：要求 enc_len==n；真压缩器按码流还原到长度 n。 */
 int luma_kv_decode_f32(const float *enc, long enc_len, float *out, long n);
 
 #ifdef __cplusplus

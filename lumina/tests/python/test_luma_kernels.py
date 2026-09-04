@@ -43,4 +43,4 @@ def test_baseline_ternary_rejects_bad_threshold(luma_native: Any) -> None:
     """Ternary baseline must reject a negative threshold (documented L2)."""
     weights = np.array([1.0, 2.0], dtype=np.float32)
     with pytest.raises(RuntimeError, match="invalid argument"):
-        luma_native.luma_baseline_ternary_encode(weights, -0.1)
+        luma_native.luma_quant_ternary_encode(weights, -0.1)

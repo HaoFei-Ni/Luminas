@@ -13,11 +13,13 @@
 
 namespace py = pybind11;
 
+/* 统一把 luma 错误码映射成 Python 异常，避免裸 int 泄漏到解释器。 */
 static void luma_throw(int rc, const char *op)
 {
     throw std::runtime_error(std::string(op) + ": " + luma_strerror(rc));
 }
 
+/* 绑定层只收 C 连续 float32，防止静默跨步/dtype 错误进核。 */
 static void luma_require_c_f32(const py::array &a, const char *name)
 {
     if (a.dtype().kind() != 'f' || a.dtype().itemsize() != 4)
@@ -26,6 +28,7 @@ static void luma_require_c_f32(const py::array &a, const char *name)
         throw std::runtime_error(std::string(name) + " must be C-contiguous");
 }
 
+/* SVD 入口限定 2-D float64，与 C-ABI 行主序契约对齐。 */
 static void luma_require_c_f64_2d(const py::array &a, const char *name)
 {
     if (a.ndim() != 2)
@@ -36,6 +39,7 @@ static void luma_require_c_f64_2d(const py::array &a, const char *name)
         throw std::runtime_error(std::string(name) + " must be C-contiguous");
 }
 
+/* 产品 Enc 绑定：长序列必须放 GIL，核内持锁无吞吐收益。 */
 static py::array_t<float> kv_encode(py::array_t<float, py::array::c_style> x)
 {
     luma_require_c_f32(x, "x");
@@ -45,18 +49,18 @@ static py::array_t<float> kv_encode(py::array_t<float, py::array::c_style> x)
     long enc_len = 0;
     int rc;
     {
-        py::gil_scoped_release release; /* 核函数持锁无益，长序列必须放 GIL。 */
+        py::gil_scoped_release release;
         rc = luma_kv_encode_f32(static_cast<const float *>(buf.ptr), n,
                                 enc.mutable_data(), n, &enc_len);
     }
     if (rc != LUMA_OK)
         luma_throw(rc, "luma_kv_encode_f32");
-    /* 恒等实现 enc_len==n。真压缩器返回更短表示时，应只暴露前 enc_len 个。 */
     if (enc_len != n)
         throw std::runtime_error("luma_kv_encode_f32: unexpected enc_len");
     return enc;
 }
 
+/* 产品 Dec 绑定：enc_len 与目标 n 由 C-ABI 校验。 */
 static py::array_t<float> kv_decode(py::array_t<float, py::array::c_style> enc, long n)
 {
     luma_require_c_f32(enc, "enc");
@@ -74,7 +78,8 @@ static py::array_t<float> kv_decode(py::array_t<float, py::array::c_style> enc, 
     return out;
 }
 
-static py::tuple baseline_ternary_encode(py::array_t<float, py::array::c_style> w, float threshold)
+/* 有损三值基线绑定：返回 (scale, codes)。 */
+static py::tuple quant_ternary_encode(py::array_t<float, py::array::c_style> w, float threshold)
 {
     luma_require_c_f32(w, "w");
     auto buf = w.request();
@@ -84,16 +89,17 @@ static py::tuple baseline_ternary_encode(py::array_t<float, py::array::c_style> 
     int rc;
     {
         py::gil_scoped_release release;
-        rc = luma_baseline_ternary_encode(static_cast<const float *>(buf.ptr), n, threshold,
-                                          &scale, codes.mutable_data());
+        rc = luma_quant_ternary_encode(static_cast<const float *>(buf.ptr), &scale,
+                                       codes.mutable_data(), n, threshold);
     }
     if (rc != LUMA_OK)
-        luma_throw(rc, "luma_baseline_ternary_encode");
+        luma_throw(rc, "luma_quant_ternary_encode");
     return py::make_tuple(scale, codes);
 }
 
-static py::array_t<float> baseline_pow2_block_quant(py::array_t<float, py::array::c_style> x,
-                                             int mantissa_bits, int block_size)
+/* 有损 pow2 块量化绑定。 */
+static py::array_t<float> quant_block_pow2(py::array_t<float, py::array::c_style> x,
+                                           int mantissa_bits, int block_size)
 {
     luma_require_c_f32(x, "x");
     auto buf = x.request();
@@ -102,15 +108,16 @@ static py::array_t<float> baseline_pow2_block_quant(py::array_t<float, py::array
     int rc;
     {
         py::gil_scoped_release release;
-        rc = luma_baseline_pow2_block_quant(static_cast<const float *>(buf.ptr), n, mantissa_bits,
-                                      block_size, out.mutable_data());
+        rc = luma_quant_block_pow2(static_cast<const float *>(buf.ptr), out.mutable_data(),
+                                   n, mantissa_bits, block_size);
     }
     if (rc != LUMA_OK)
-        luma_throw(rc, "luma_baseline_pow2_block_quant");
+        luma_throw(rc, "luma_quant_block_pow2");
     return out;
 }
 
-static py::tuple baseline_truncated_svd(py::array_t<double, py::array::c_style> x, int r)
+/* 有损截断 SVD 绑定：r 夹紧到合法秩，避免 Python 侧直接崩。 */
+static py::tuple svd_truncated(py::array_t<double, py::array::c_style> x, int r)
 {
     luma_require_c_f64_2d(x, "x");
     auto buf = x.request();
@@ -118,7 +125,6 @@ static py::tuple baseline_truncated_svd(py::array_t<double, py::array::c_style> 
     int n = static_cast<int>(buf.shape[1]);
     if (r <= 0)
         throw std::runtime_error("r must be > 0");
-    /* 静默夹紧到 max 合法秩，避免 Python 侧因 r>min(m,n) 直接崩。 */
     int rank = r;
     if (rank > m)
         rank = m;
@@ -130,11 +136,11 @@ static py::tuple baseline_truncated_svd(py::array_t<double, py::array::c_style> 
     int rc;
     {
         py::gil_scoped_release release;
-        rc = luma_baseline_truncated_svd(static_cast<const double *>(buf.ptr), m, n, rank,
-                                         u.mutable_data(), s.mutable_data(), vt.mutable_data());
+        rc = luma_svd_truncated(static_cast<const double *>(buf.ptr), u.mutable_data(),
+                                s.mutable_data(), vt.mutable_data(), m, n, rank);
     }
     if (rc != LUMA_OK)
-        luma_throw(rc, "luma_baseline_truncated_svd");
+        luma_throw(rc, "luma_svd_truncated");
     return py::make_tuple(u, s, vt);
 }
 
@@ -144,7 +150,7 @@ PYBIND11_MODULE(_luma_native, m)
     m.def("luma_kv_encode", &kv_encode, "product Enc (identity placeholder; no compression ratio)");
     m.def("luma_kv_decode", &kv_decode, py::arg("enc"), py::arg("n"),
           "product Dec (identity placeholder)");
-    m.def("luma_baseline_ternary_encode", &baseline_ternary_encode, "lossy ternary weight baseline");
-    m.def("luma_baseline_pow2_block_quant", &baseline_pow2_block_quant, "lossy power-of-two block baseline");
-    m.def("luma_baseline_truncated_svd", &baseline_truncated_svd, "lossy truncated SVD baseline");
+    m.def("luma_quant_ternary_encode", &quant_ternary_encode, "lossy ternary weight baseline");
+    m.def("luma_quant_block_pow2", &quant_block_pow2, "lossy power-of-two block baseline");
+    m.def("luma_svd_truncated", &svd_truncated, "lossy truncated SVD baseline");
 }

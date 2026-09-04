@@ -130,44 +130,38 @@ def _file_level_violations(file_metrics: List[FileMetrics], config: Dict[str, An
 
 
 def _function_level_violations(function_metrics: List[FunctionMetrics], config: Dict[str, Any]) -> List[Dict[str, str]]:
-    """Check per-function physical lines and cognitive complexity."""
+    """Check per-function lines, cognitive complexity, and self-recursion."""
     thresholds = config["thresholds"]
     features = config["features"]
-    skipped_names = set(config["exclusions"]["function_names"])
+    exclusions = config["exclusions"]
+    skipped_names = set(exclusions["function_names"])
+    recursion_ok = set(exclusions.get("recursion_allowed_functions", []))
     violations: List[Dict[str, str]] = []
     for func in function_metrics:
         if func.name in skipped_names:
             continue
+        target = f"{func.file_key}::{func.name}"
         if _over_limit(
             features["enable_function_lines_check"],
             func.lines,
             thresholds["max_function_physical_lines"],
         ):
             violations.append(
-                build_violation(
-                    f"{func.file_key}::{func.name}",
-                    "函数物理行数超限",
-                    func.lines,
-                    thresholds["max_function_physical_lines"],
-                )
+                build_violation(target, "函数物理行数超限", func.lines, thresholds["max_function_physical_lines"])
             )
         if _over_limit(
             features["enable_cognitive_complexity_check"],
             func.complexity,
             thresholds["max_cognitive_complexity"],
         ):
-            # _over_limit already guarantees complexity is not None
             complexity = func.complexity
             if complexity is None:
                 raise RuntimeError("complexity missing after over-limit check")
             violations.append(
-                build_violation(
-                    f"{func.file_key}::{func.name}",
-                    "认知复杂度超限",
-                    complexity,
-                    thresholds["max_cognitive_complexity"],
-                )
+                build_violation(target, "认知复杂度超限", complexity, thresholds["max_cognitive_complexity"])
             )
+        if features.get("enable_recursion_check", True) and func.has_recursion and func.name not in recursion_ok:
+            violations.append(build_violation(target, "函数含自递归（默认禁止）", 1, 0))
     return violations
 
 
@@ -199,6 +193,7 @@ def health_score(
         "单文件函数数量超限": 10,
         "函数物理行数超限": 8,
         "认知复杂度超限": 12,
+        "函数含自递归（默认禁止）": 12,
     }
     score = 100
     for item in violations:
@@ -333,6 +328,7 @@ def main() -> None:
             name=item.name,
             lines=item.lines,
             complexity=complexities.get((item.file_key, item.name)),
+            has_recursion=item.has_recursion,
         )
         for item in function_metrics
     ]

@@ -22,8 +22,8 @@
 
 ### 1.1 函数与变量（snake_case）
 
-- 导出符号：`luma_<模块>_<动作>[_<dtype>]`，如 `luma_kv_encode_f32`、`luma_baseline_ternary_encode`、`luma_cuda_baseline_kv_int8`。
-- 文件局部（`static`）：一律 `luma_` 前缀（即使不导出），如 `luma_jacobi_sym_eig`、`luma_gram_ata`、`luma_is_power_of_two`。
+- 导出符号：`luma_<模块>_<动作>[_<dtype>]`，如 `luma_kv_encode_f32`、`luma_quant_ternary_encode`、`luma_cuda_kv_quant_int8`。
+- 文件局部（`static`）：一律带模块前缀（即使不导出），如 `luma_svd_jacobi_sym_eig`、`luma_svd_gram_xt_x`、`luma_math_require_finite_f32`。
 - 动作词固定：`encode` / `decode` / `quant` / `copy` / `ref` 语义见 §3。
 - dtype 后缀固定小写：`f32` / `f64`（禁止 `F32`/`float`/`f32x` 混用）。
 
@@ -35,13 +35,13 @@
 
 ### 1.3 宏与常量
 
-- 宏：`LUMA_<NAME>` 全大写 + 下划线，如 `LUMA_BASELINE_JACOBI_MAX_DIM`。
+- 宏：`LUMA_<NAME>` 全大写 + 下划线，如 `LUMA_JACOBI_MAX_DIM`。
 - 编译期常量优先用 `constexpr`/`enum` 而非宏；数值容差、阈值一律**具名常量**，禁止魔法数字（见 §8）。
 - include guard：`LUMA_<FILE>_H`（与文件名对齐）。
 
 ### 1.4 参数与局部
 
-- 公共 API 入参 ≤ 5；超出用结构体封装（`luma_*_params_t`）。
+- 公共 API 入参 ≤ 5；超出用结构体封装（`luma_*_params_t` / `luma_cuda_decode_fused_args_t`）。
 - 长度/索引用固定宽度类型 `int64_t`/`int32_t`，禁止在 CPU/CUDA 两套 ABI 混用 `long` 与 `int` 表同一逻辑量（现 `luma_kv_*` 用 `long`、CUDA 用 `int`，需统一）。
 
 ## 2. 平台/角色前缀（与分层对齐）
@@ -49,27 +49,26 @@
 | 前缀 | 含义 | 落位目录 |
 |---|---|---|
 | `luma_kv_*` / `luma_kv_ref_*` | 产品无损 KV（预言机 + Enc/Dec） | `algorithm/` |
-| `luma_baseline_*` | CPU 有损对照 | `kernel/baseline/` |
-| `luma_cuda_*` | CUDA 启动器（工程前缀） | `kernel/` |
-| `luma_cuda_baseline_*` | GPU 有损对照 | `kernel/baseline/` |
+| `luma_math_*` | Level-1 共享原语 | `kernel/baseline/` |
+| `luma_quant_*` / `luma_svd_*` | CPU 有损对照 | `kernel/baseline/` |
+| `luma_cuda_*` | CUDA 启动器 / 设备工具 | `kernel/` + `kernel/baseline/` |
 | `luma_triton_*` | Triton 内核（未启用） | `kernel/` |
 | `luma_strerror` / 错误码 | 公共错误语义 | `algorithm/`（随错误码定义，见 LUM-ARC-101 Phase B） |
 
 ## 3. 禁用误导性命名
 
-- 禁用 `mxfp`：本实现非 OCP MXFP 规范，`luma_baseline_mxfp_quant` → `luma_baseline_pow2_block_quant`。
+- 禁用 `mxfp`：本实现非 OCP MXFP 规范，旧名 → `luma_quant_block_pow2`。
 - 禁用 `cpu` 修饰平台无关算法文件：`luma_kv_cpu.c` → `luma_kv_codec.c`（`algorithm/` 是平台无关层）。
-- 禁用 "baseline" 多义：代码里 `baseline` 仅指"有损对照核"；文档里"基准压缩比"改称 `reference_rate` / `nominal_case`，与代码语义解耦。
-- 缩写白名单：`kv`、`svd`、`cuda`、`max`、`min`、`dim`、`num`、`pow2→power_of_two`。禁用 `cla`（语义不明）、`mxfp`、`ata/aat`（改 `gram_ata`→`gram_xt_x`、`gram_aat`→`gram_x_xt`）。
+- 禁用文件名重复目录语义：`baseline/` 下禁止再写 `luma_baseline_*` 文件名；用 `luma_quant_*` / `luma_svd_*` / `luma_math_*`。
+- 缩写白名单：`kv`、`svd`、`cuda`、`max`、`min`、`dim`、`num`、`pow2→power_of_two`。禁用 `cla`、`mxfp`、`ata/aat`（改 `gram_xt_x` / `gram_x_xt`）。
 
 ## 4. Python 命名规范
 
 - 模块/函数/变量：`snake_case`；类 `PascalCase`；常量 `UPPER_SNAKE`（如 `ULP32`）。
 - 绑定导出名**必须与 C ABI 符号一一对应**，不得脱落 `luma_`/`cuda_` 前缀：
-  - 现 `_luma_native.kv_encode` → `luma_kv_encode`；`baseline_ternary_encode` → `luma_baseline_ternary_encode`；
-  - `_luma_cuda.baseline_kv_int8` → `luma_cuda_baseline_kv_int8`。
-- 测试文件：`test_*.py`；核验脚本：`verify_*.py`；二者区分，不得混用（现 `verify-kv-compression-baseline.py` 用连字符且无 `test_` 前缀，需统一为 `verify_rate_formula.py` 或 `test_rate_formula.py`）。
-
+  - `_luma_native.luma_kv_encode` / `luma_quant_ternary_encode` / `luma_svd_truncated`；
+  - `_luma_cuda.luma_cuda_kv_quant_int8`。
+- 测试文件：`test_*.py`；核验脚本：`verify_*.py`；二者区分，不得混用。
 ## 5. 文件 / 目录命名规范
 
 - 文件：`luma_<name>.<ext>`（源码）；`test_<name>.<ext>`（测试）；`LUM-XXX-NNN_<en>.md`（文档）。
@@ -88,11 +87,25 @@
 - C 测试统一放 `tests/c/`，Python 测试统一放 `tests/python/`（已落地，2026-09）。`theory/*/verify/` 保留为推导附属脚本，正式 CI 以 `tests/` 为准。
 - 命题对应注释固定引用编号（`P1/P2/...`），2-ulp 阈值用共享常量 `LUMA_ULP32 = 2^-23`，禁止在多处硬编码 `1.1920928955078125e-7`。
 
-## 8. 无魔法数字（强制）
+## 8. 注释规范（强制）
 
-容差/阈值必须具名（已落地，2026-09）：`LUMA_TERNARY_NEAR_ZERO_SCALE = 1e-12f`、`LUMA_JACOBI_CONVERGE_TOL = 1e-24`、`LUMA_JACOBI_DIVERGE_TOL = 1e-20`、`LUMA_JACOBI_ROTATE_EPS = 1e-15`、`LUMA_SVD_SINGULAR_EPS = 1e-15`、`LUMA_ULP32 = 2^-23`。禁止在函数体/测试体内散落裸数字。
+原则：**只写 why**（不变量 / 精度阶 / 边界 / 为何不能改），禁止复述 what。
 
-## 9. 落地顺序（不破坏语义）
+| 层级 | 要求 |
+|---|---|
+| 文件头 | `@file` + 模块职责、数值契约、非目标（有损/无损） |
+| 对外声明 / 定义 | Doxygen：`@brief` `@param` `@return` `@note`（精度与适用场景） |
+| **行内注释** | 复杂场景**必须**贴在关键语句旁或紧上一行：稳定公式选型、对称性约定、同步点、除零/溢出防护、与门禁拆循环的原因 |
+
+复杂场景示例（须行内注释）：Jacobi 旋转角、在线 softmax 重标定、pow2/尾数 frexp、CUDA `__syncthreads` 前后共享状态、Gram 上三角镜像、σ≈0 置零。
+
+门禁：`quality-gate.toml` `[comment_standard]` 强制文件 banner + 函数/声明前置注释；行内注释由评审与本规范强制。
+
+## 9. 无魔法数字（强制）
+
+容差/阈值必须具名（已落地）：`LUMA_TERNARY_NEAR_ZERO`、`LUMA_JACOBI_*`、`LUMA_SVD_SINGULAR_EPS`、`LUMA_ULP32`（旧 `LUMA_BASELINE_*` 宏保留为兼容别名）。禁止在函数体/测试体内散落裸数字。
+
+## 10. 落地顺序（不破坏语义）
 
 1. 先定项目身份口径（§0）并记录，冻结为唯一写法。
 2. 头拆分（LUM-ARC-101 Phase B）：抽 `include/luma_kv.h`，消除 algorithm→kernel include。

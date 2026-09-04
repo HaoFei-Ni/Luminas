@@ -1,9 +1,12 @@
 # Luminas 算子适配层：有损基线 + CUDA launchers。
 # 依赖 algorithm 契约头（luma_kv.h）；CUDA / fused-decode 可选。
 set(LUMA_CPU_SOURCES
-    baseline/luma_baseline_ternary.c
-    baseline/luma_baseline_pow2_block_quant.c
-    baseline/luma_baseline_truncated_svd.c
+    baseline/luma_math.c
+    baseline/luma_quant_ternary.c
+    baseline/luma_quant_block_pow2.c
+    baseline/luma_svd_jacobi.c
+    baseline/luma_svd_gram.c
+    baseline/luma_svd_truncated.c
 )
 
 add_library(luma_cpu STATIC ${LUMA_CPU_SOURCES})
@@ -26,9 +29,9 @@ add_test(NAME luma_test_baseline COMMAND luma_test_baseline)
 if(LUMINA_BUILD_CUDA)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
-    set(LUMA_CUDA_SOURCES baseline/luma_cuda_baseline_kv_int8.cu)
+    set(LUMA_CUDA_SOURCES baseline/luma_cuda_kv_quant_int8.cu)
     if(LUMINA_BUILD_FUSED_DECODE)
-        list(APPEND LUMA_CUDA_SOURCES baseline/luma_cuda_baseline_fused_decode.cu)
+        list(APPEND LUMA_CUDA_SOURCES baseline/luma_cuda_decode_fused.cu)
     endif()
     add_library(luma_cuda STATIC ${LUMA_CUDA_SOURCES})
     target_include_directories(luma_cuda PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

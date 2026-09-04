@@ -26,15 +26,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from tools.py_recursion import self_recursive_names
+
 
 @dataclass(frozen=True)
 class FunctionMetrics:
-    """Per-function metrics: AST-measured line count + optional complexity."""
+    """Per-function metrics: AST lines, optional complexity, self-recursion."""
 
     file_key: str
     name: str
     lines: int
     complexity: int | None
+    has_recursion: bool = False
 
 
 @dataclass(frozen=True)
@@ -166,6 +169,7 @@ def measure_files(
         file_key = as_file_key(file_path)
         total = _count_significant(raw_lines, count_blank_lines, count_comment_lines)
         spans = _function_spans(tree)
+        recursive = self_recursive_names(tree)
         file_metrics.append(
             FileMetrics(
                 file_key=file_key,
@@ -182,6 +186,7 @@ def measure_files(
                     name=name,
                     lines=_count_significant(body, count_blank_lines, count_comment_lines),
                     complexity=None,
+                    has_recursion=name in recursive,
                 )
             )
     return file_metrics, function_metrics

@@ -2,6 +2,7 @@
 # 只产出静态库 luma_algorithm（错误串 + FP64 预言机 + 产品 Enc/Dec）。
 add_library(luma_algorithm STATIC
     luma_status.c
+    luma_kv_finite.c
     luma_kv_ref.c
     luma_kv_codec.c
 )

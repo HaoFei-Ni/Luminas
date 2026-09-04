@@ -41,7 +41,7 @@
 | 预言机 \(S \mapsto S\)（FP64） | `luma_kv_ref_copy_f64` | `lumina/algorithm/luma_kv_ref.c` |
 | \(\mathrm{Enc}\) | `luma_kv_encode_f32` | `lumina/algorithm/luma_kv_codec.c` |
 | \(\mathrm{Dec}\) | `luma_kv_decode_f32` | 同上 |
-| 有损对照 | `luma_baseline_*` / `luma_cuda_baseline_*` | `lumina/kernel/baseline/` |
+| 有损对照 | `luma_quant_*` / `luma_svd_*` / `luma_cuda_*` | `lumina/kernel/baseline/` |
 | L1/L2/L5 | `test_luma_kv` | `lumina/tests/c/test_luma_kv.c` |
 
 公式落地时**只改 encode/decode 函数体**，不改预言机，不把 baseline 抬回产品路径。

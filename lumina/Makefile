@@ -37,9 +37,13 @@ test-ci: prep-cache
 test-cov: prep-cache
 	uv run pytest --cov --cov-report=term-missing --cov-report=xml:$(CACHE_ROOT)/pytest/coverage.xml
 
-# 全量四项质量门禁 + 健康度报告
+# 全量四项质量门禁 + C 结构度量 + 健康度报告
 quality: prep-cache
 	uv run python -m tools.run_quality_gate
+
+# 仅 C/CUDA 结构度量（algorithm/ + kernel/）
+quality-c: prep-cache
+	uv run python -m tools.c_quality_gate
 
 clean-cache:
 	rm -rf $(CACHE_ROOT)/*
@@ -52,5 +56,6 @@ help:
 	@echo "  make test       pytest（本地默认）"
 	@echo "  make test-ci    pytest CI 档（-n auto + junit）"
 	@echo "  make test-cov   pytest + coverage"
-	@echo "  make quality    全量质量门禁"
+	@echo "  make quality    Python + C 全量质量门禁"
+	@echo "  make quality-c  仅 C/CUDA 结构度量"
 	@echo "  make clean-cache 清空 .cache/"

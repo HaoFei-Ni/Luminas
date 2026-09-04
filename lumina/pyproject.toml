@@ -64,12 +64,8 @@ dev = [
 #   uv run ruff check .                                  # 仅 Ruff 静态代码规范检查
 #   uv run ruff check . --fix                            # Ruff 自动修复所有可自动修复项
 #   uv run ruff format .                                 # Ruff 全量格式化，仅改排版不改逻辑
-#   uv run python -m tools.run_quality_gate              # 全量四项门禁 + 健康度报告
-#   uv run pytest                                        # 本地默认：纯 Python 必绿；native/cuda 按需 skip
-#   uv run pytest -m "not native and not cuda"           # 仅纯 Python（无扩展环境）
-#   uv run pytest -m "native or l5"                      # 仅绑定/无损数值门（需先 cmake 构建）
-#   HYPOTHESIS_PROFILE=ci uv run pytest -n auto --junitxml=.cache/pytest/junit.xml
-#   uv run pytest --cov --cov-report=term-missing        # 覆盖率（公共 API 见 [tool.coverage]）
+#   uv run python -m tools.run_quality_gate              # Python 四项 + C 结构度量
+#   uv run python -m tools.c_quality_gate                # 仅 C/CUDA（algorithm/ + kernel/）
 # 提交钩子已在根 .pre-commit-config.yaml 统一执行 ruff/fmt/认知复杂度门禁。
 
 # ==============================================================================

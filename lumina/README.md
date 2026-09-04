@@ -8,7 +8,7 @@
 | `algorithm/` | 平台无关 ANSI C 压缩/解压数学（纯逻辑） | 已启用（`luma_kv_ref.c` / `luma_kv_codec.c`） |
 | `kernel/` | C-ABI 头、CUDA/CPU 算子、有损基线 | 现有代码在此（C99 + baseline + CUDA） |
 | `wrapper/` | 对外 API / pybind 绑定 / 封装 | 已启用（`luma_bind_*.cpp`） |
-| `tools/` | Python 质量门禁与指标层（非算子） | `quality_metrics` / `ci_quality_gate` / pre-commit 入口 |
+| `tools/` | Python + C 质量门禁与指标层（非算子） | `quality_metrics` / `c_quality_gate` / pre-commit 入口 |
 | `theory/` | 架构无关方法笔记、闭合框架、推导 | 现有（`state-cache/`） |
 | `research/` | 实验协议、lab log、官方案例运行 | **规划中（空）** |
 | `tests/` | C + Python 测试（`tests/c/` ctest、`tests/python/` pytest） | `test_luma_kv.c` / `test_luma_baseline.c` / `test_luma_kernels.py` |

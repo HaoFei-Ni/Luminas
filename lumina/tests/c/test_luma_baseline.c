@@ -10,9 +10,8 @@
 
 static int g_fail;
 
-/* 测试容差（具名，禁止散落裸数字）。 */
-#define LUMA_TEST_FRO_DENOM_EPS 1e-30 /* fro_recon 分母保护 */
-#define LUMA_TEST_SVD_RECON_TOL 1e-8  /* 满秩 SVD 重构残差阈值 */
+#define LUMA_TEST_FRO_DENOM_EPS 1e-30
+#define LUMA_TEST_SVD_RECON_TOL 1e-8
 
 static void expect_ok(int rc, const char *what)
 {
@@ -47,13 +46,12 @@ static void test_ternary(void)
     signed char codes[4];
     float scale = 0.0f;
 
-    expect_ok(luma_baseline_ternary_encode(w, 4, 0.5f, &scale, codes), "ternary");
-    /* |w1| 远小于 0.5*mean(|w|)，应被置零。 */
+    expect_ok(luma_quant_ternary_encode(w, &scale, codes, 4, 0.5f), "ternary");
     if (codes[0] != 1 || codes[2] != 1 || codes[3] != 0) {
         fprintf(stderr, "FAIL ternary codes\n");
         g_fail = 1;
     }
-    if (luma_baseline_ternary_encode(w, 4, -1.0f, &scale, codes) != LUMA_ERR_ARG)
+    if (luma_quant_ternary_encode(w, &scale, codes, 4, -1.0f) != LUMA_ERR_ARG)
         g_fail = 1, fprintf(stderr, "FAIL ternary threshold\n");
 }
 
@@ -62,19 +60,17 @@ static void test_pow2_block(void)
     float x[5] = {1.0f, -1.0f, 0.25f, 0.0f, 2.0f};
     float out[5];
 
-    expect_ok(luma_baseline_pow2_block_quant(x, 5, 3, 2, out), "pow2_block");
+    expect_ok(luma_quant_block_pow2(x, out, 5, 3, 2), "pow2_block");
     if (out[3] != 0.0f) {
         fprintf(stderr, "FAIL pow2_block zero\n");
         g_fail = 1;
     }
-    /* mbits=40 超过 LUMA_POW2_BLOCK_MAX_MANTISSA_BITS。 */
-    if (luma_baseline_pow2_block_quant(x, 5, 40, 2, out) != LUMA_ERR_ARG)
+    if (luma_quant_block_pow2(x, out, 5, 40, 2) != LUMA_ERR_ARG)
         g_fail = 1, fprintf(stderr, "FAIL pow2_block mbits\n");
 }
 
 static void test_svd_full_rank(void)
 {
-    /* 高 4×3：走 XᵀX */
     double xt[12] = {
         1, 0, 0,
         0, 2, 0,
@@ -82,7 +78,6 @@ static void test_svd_full_rank(void)
         1, 1, 1
     };
     double u[12], s[3], vt[9];
-    /* 宽 2×4：走 XXᵀ */
     double xw[8] = {
         1, 2, 3, 4,
         0, 1, 0, 1
@@ -90,21 +85,21 @@ static void test_svd_full_rank(void)
     double uw[4], sw[2], vtw[8];
     double rel;
 
-    expect_ok(luma_baseline_truncated_svd(xt, 4, 3, 3, u, s, vt), "svd tall");
+    expect_ok(luma_svd_truncated(xt, u, s, vt, 4, 3, 3), "svd tall");
     rel = fro_recon(xt, u, s, vt, 4, 3, 3);
     if (rel > LUMA_TEST_SVD_RECON_TOL) {
         fprintf(stderr, "FAIL svd tall residual %g\n", rel);
         g_fail = 1;
     }
 
-    expect_ok(luma_baseline_truncated_svd(xw, 2, 4, 2, uw, sw, vtw), "svd wide");
+    expect_ok(luma_svd_truncated(xw, uw, sw, vtw, 2, 4, 2), "svd wide");
     rel = fro_recon(xw, uw, sw, vtw, 2, 4, 2);
     if (rel > LUMA_TEST_SVD_RECON_TOL) {
         fprintf(stderr, "FAIL svd wide residual %g\n", rel);
         g_fail = 1;
     }
 
-    if (luma_baseline_truncated_svd(xt, 4, 3, 0, u, s, vt) != LUMA_ERR_ARG)
+    if (luma_svd_truncated(xt, u, s, vt, 4, 3, 0) != LUMA_ERR_ARG)
         g_fail = 1, fprintf(stderr, "FAIL svd r=0\n");
 }
 

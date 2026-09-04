@@ -1,6 +1,6 @@
 # ==============================================================================
-# 代码质量门禁配置文件（全量四项门禁的唯一真值源）
-# 执行器：tools.ci_quality_gate（读取本文件 + complexipy JSON + AST 原生行数测量）
+# 代码质量门禁配置文件（全量门禁的唯一真值源）
+# 执行器：tools.ci_quality_gate / tools.c_quality_gate（经 tools.run_quality_gate）
 # 阈值 / 开关 / 行数口径 / 排除规则统一在此声明。工具侧仅保留最小镜像配置：
 #   - pyproject.toml 的 [tool.complexipy].paths 须与下方 [scan].include_paths
 #     保持一致（供手动裸跑 uv run complexipy 时使用；正式入口
@@ -23,15 +23,16 @@ include_paths = [
 # ------------------------------ 阈值配置 ------------------------------
 # 行业参考：
 #   认知复杂度：≤10 优秀，≤15 良好，>20 高风险
-#   单文件行数：≤200 优秀，≤400 可接受，>600 建议拆分
+#   单文件行数：≤200 优秀，≤300 可接受，>400 建议拆分
 #   单文件函数数：≤10 优秀，≤12 可接受，过多说明模块职责发散
 #   单函数行数：≤50 优秀，≤80 可接受，>100 建议拆分子函数
 # 说明：分层依赖边界由 ruff TID251 banned-api 强制；本门禁为扁平阈值。
+# eng-standard：非必要禁止递归；Python 允许编排层循环控制（见 [features]）。
 [thresholds]
 # 认知复杂度上限（SonarQube 同款指标，反映人脑理解负担）；提交前强校验同用此值
 max_cognitive_complexity = 15
 # 单个 Python 文件物理总行数上限（口径见 [line_counting]）
-max_file_physical_lines = 800
+max_file_physical_lines = 400
 # 单个 Python 文件内允许的最大函数数量
 max_function_count_per_file = 12
 # 单个函数物理源码行数上限（口径见 [line_counting]）
@@ -46,13 +47,15 @@ count_blank_lines = false
 count_comment_lines = false
 
 # ------------------------------ 功能开关 ------------------------------
-# 架构边界 / 重复率 / docstring / 性能反模式：由 ruff（TID/ERA/PERF/D）承担，
-# 本门禁专注行数 + 认知复杂度四项，避免与 ruff 重复造轮子。
+# 架构边界 / 重复率 / docstring / 性能反模式：由 ruff（TID/ERA/PERF/D）承担。
+# Python：禁止自递归；允许 for/while（编排/wiring/测试循环控制，见 LUM-ENG-001）。
 [features]
 enable_file_lines_check = true
 enable_function_count_check = true
 enable_function_lines_check = true
 enable_cognitive_complexity_check = true
+enable_recursion_check = true
+enable_loop_check = false
 
 # ------------------------------ 报告输出配置 ------------------------------
 [report]
@@ -63,7 +66,7 @@ markdown_report_path = "complexipy-report.md"
 # 报告主标题
 title = "代码复杂度质量报告"
 # 报告描述说明
-description = "校验维度：认知复杂度、文件行数（AST 原生）、单文件函数数量、函数行数（AST 原生）"
+description = "校验维度：认知复杂度、文件/函数行数、单文件函数数、自递归（Python 允许编排循环）"
 # 是否输出全量函数明细表格
 show_full_detail = true
 # 违规汇总表格表头
@@ -75,9 +78,60 @@ pass_text = "✅ 全部校验通过"
 # 校验未通过提示文案
 fail_text = "❌ 质量门禁未通过，阻断提交/发布"
 
-# ------------------------------ 排除规则 ------------------------------
+# ------------------------------ 排除规则（Python 门禁） ------------------------------
 [exclusions]
-# 排除校验的文件路径模式（fnmatch，相对 lumina/，POSIX 风格）
 file_patterns = [".cache/**", "__pycache__/**"]
-# 排除校验的函数名（如入口函数、样板代码）
 function_names = ["main"]
+# 非必要禁止自递归；仅下列函数名可豁免（默认空）
+recursion_allowed_functions = []
+
+# ------------------------------ 注释规范（全语言统一口径） ------------------------------
+# C/C++/CUDA：文件头 banner + 函数定义前置注释 + 头文件声明前置注释（本门禁强制）。
+# Python：公共 API docstring 由 ruff D（google）强制；tests/theory 见 pyproject per-file ignore。
+# 原则：只写 why（不变量/精度/边界/为何如此），禁止复述代码 what。
+# 复杂数值/同步/别名场景须有行内注释（见 LUM-ENG-101 §8）；本门禁强制 banner+函数/声明文档。
+[comment_standard]
+require_file_banner = true
+require_function_doc = true
+require_header_decl_doc = true
+style = "why-not-what"
+
+# ------------------------------ C/C++/CUDA 结构度量（eng-standard） ------------------------------
+# algorithm/：运行时零循环零递归（必要有限性扫描见 loop_allowed_functions）。
+# kernel/：硬件映射/有损基线允许单层循环，禁止嵌套与递归。
+# wrapper/：pybind 胶水，同样强制注释；禁止写数值算法。
+[c_scan]
+include_paths = ["algorithm", "kernel", "wrapper"]
+
+[c_thresholds]
+max_header_physical_lines = 300
+max_impl_physical_lines = 500
+max_function_physical_lines = 80
+max_functions_per_file = 15
+# 默认每个函数 0 个循环；白名单内仍不得超过嵌套深度
+max_loop_count_per_function = 0
+max_loop_nesting_depth = 1
+
+[c_features]
+enable_file_lines_check = true
+enable_function_count_check = true
+enable_function_lines_check = true
+enable_loop_check = true
+enable_loop_nesting_check = true
+enable_recursion_check = true
+enable_function_doc_check = true
+enable_file_banner_check = true
+enable_header_decl_doc_check = true
+
+[c_exclusions]
+# 测试源在 tests/c，不进本门禁（由 ctest 覆盖功能）；注释仍建议齐全
+file_patterns = ["**/tests/**", "**/.cache/**"]
+# 必要单层循环：算子适配层 / CUDA 基线
+loop_allowed_file_patterns = ["kernel/**", "wrapper/**"]
+# algorithm 变长有限性门禁（落地 SIMD/LUT Enc 后应删除并清表白名单）
+loop_allowed_functions = [
+    "luma_kv_require_finite_f32",
+    "luma_kv_require_finite_f64",
+]
+recursion_allowed_functions = []
+doc_comment_exempt_functions = []

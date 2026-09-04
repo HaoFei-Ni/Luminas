@@ -2,9 +2,8 @@
  *
  * 将 host float32 转为设备 fp16 再调 C-ABI。dtype 转换视为编组，不是算法核。
  * 整缓冲 H2D/D2H 只方便测试；生产路径应持有设备指针，避免往返吃掉加速。
- * 每个 cudaMalloc / Memcpy / launch 失败都必须变成异常，禁止吞错。
  */
-#include "luma_cuda_kernels.h"
+#include "luma_cuda.h"
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -19,6 +18,7 @@
 
 namespace py = pybind11;
 
+/* CUDA API 失败立刻抛异常，禁止静默继续。 */
 static void luma_cuda_or_throw(cudaError_t e, const char *what)
 {
     if (e != cudaSuccess)
@@ -29,7 +29,11 @@ static void luma_cuda_or_throw(cudaError_t e, const char *what)
 class LumaDeviceBuf
 {
 public:
-    LumaDeviceBuf() : p_(nullptr) {}
+    /* 空缓冲：延迟到 alloc，避免构造期抛异常难回滚。 */
+    LumaDeviceBuf()
+    {
+        p_ = nullptr;
+    }
     ~LumaDeviceBuf()
     {
         if (p_)
@@ -38,6 +42,7 @@ public:
     LumaDeviceBuf(const LumaDeviceBuf &) = delete;
     LumaDeviceBuf &operator=(const LumaDeviceBuf &) = delete;
 
+    /* 失败路径由 luma_cuda_or_throw 统一转异常。 */
     void alloc(size_t bytes, const char *what)
     {
         luma_cuda_or_throw(cudaMalloc(&p_, bytes), what);
@@ -48,8 +53,9 @@ private:
     void *p_;
 };
 
-static py::tuple baseline_kv_int8(py::array_t<float, py::array::c_style> x, int block_size,
-                                  int threads_per_block)
+/* 测试友好绑定：host f32→fp16 H2D→核→D2H；生产应跳过往返。 */
+static py::tuple cuda_kv_quant_int8(py::array_t<float, py::array::c_style> x, int block_size,
+                                    int threads_per_block)
 {
     auto buf = x.request();
     if (x.dtype().kind() != 'f' || x.dtype().itemsize() != 4)
@@ -59,7 +65,6 @@ static py::tuple baseline_kv_int8(py::array_t<float, py::array::c_style> x, int 
     if (block_size <= 0)
         throw std::runtime_error("block_size must be > 0");
 
-    /* C-ABI 用 int 长度；超长输入直接拒绝，避免静默截断。 */
     if (buf.size <= 0)
         throw std::runtime_error("x must be non-empty");
     if (buf.size > static_cast<py::ssize_t>(std::numeric_limits<int>::max()))
@@ -87,11 +92,10 @@ static py::tuple baseline_kv_int8(py::array_t<float, py::array::c_style> x, int 
     int rc;
     {
         py::gil_scoped_release release;
-        rc = luma_cuda_baseline_kv_int8(static_cast<const __half *>(d_in.get()),
-                                        static_cast<signed char *>(d_codes.get()),
-                                        static_cast<float *>(d_scales.get()),
-                                        n, block_size, threads_per_block, 0);
-        /* 默认流：同步后再 D2H，避免未完成拷贝。 */
+        rc = luma_cuda_kv_quant_int8(static_cast<const __half *>(d_in.get()),
+                                     static_cast<signed char *>(d_codes.get()),
+                                     static_cast<float *>(d_scales.get()),
+                                     n, block_size, threads_per_block, 0);
         if (rc == LUMA_OK && cudaDeviceSynchronize() != cudaSuccess)
             rc = LUMA_ERR_CUDA;
     }
@@ -106,7 +110,7 @@ static py::tuple baseline_kv_int8(py::array_t<float, py::array::c_style> x, int 
                            "D2H scales");
     }
     if (rc != LUMA_OK)
-        throw std::runtime_error(std::string("luma_cuda_baseline_kv_int8: ") + luma_strerror(rc));
+        throw std::runtime_error(std::string("luma_cuda_kv_quant_int8: ") + luma_strerror(rc));
     return py::make_tuple(scales, codes);
 }
 
@@ -114,8 +118,8 @@ PYBIND11_MODULE(_luma_cuda, m)
 {
     m.doc() = "Luminas CUDA baselines (lossy). Not the product lossless KV path.";
     m.def(
-        "luma_cuda_baseline_kv_int8",
-        &baseline_kv_int8,
+        "luma_cuda_kv_quant_int8",
+        &cuda_kv_quant_int8,
         py::arg("x"),
         py::arg("block_size"),
         py::arg("threads_per_block") = 256,
