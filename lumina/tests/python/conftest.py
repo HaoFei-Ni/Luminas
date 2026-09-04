@@ -77,6 +77,15 @@ def _install_hypothesis_profiles() -> None:
 
 _install_hypothesis_profiles()
 
+# 构建产物目录：pytest 需能 import _luma_native / _luma_baseline。
+_BUILD_WRAPPER = _LUMINA.parent / "outputs" / "build" / "lumina" / "wrapper"
+if _BUILD_WRAPPER.is_dir():
+    import sys
+
+    path = str(_BUILD_WRAPPER.resolve())
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
 
 @pytest.fixture(scope="session")
 def luma_native() -> Any:

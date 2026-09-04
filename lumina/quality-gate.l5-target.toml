@@ -166,6 +166,10 @@ loop_allowed_file_patterns = ["kernel/**", "wrapper/**"]
 loop_allowed_functions = [
     "luma_kv_require_finite_f32",
     "luma_kv_require_finite_f64",
+    "luma_kv_encode_f32",
+    "luma_kv_decode_f32",
+    "luma_kv_run_length",
+    "luma_kv_expand_run",
 ]
 recursion_allowed_functions = []
 doc_comment_exempt_functions = []

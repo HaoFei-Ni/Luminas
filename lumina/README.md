@@ -27,8 +27,9 @@
 
 ## 产品成熟度（诚实口径）
 
-- 产品扩展：`_luma_native` → 仅 `luma_kv_encode` / `luma_kv_decode`（**candidate**，恒等占位）。
+- 产品扩展：`_luma_native` → `luma_kv_encode` / `luma_kv_decode`（**candidate** `KV-ENC-CANDIDATE-1` 精确 f32 RLE；未过三级门前禁止称「无损」）。
 - 有损基线扩展：`_luma_baseline` / `_luma_cuda` → quant / SVD / int8；**不是**产品无损路径。
+- 构建：`uv run python -m tools.run_build --test`（先 `. .\lumina\scripts\dev-env.ps1 -PersistUserPath` 一次即可）。
 - 算子与接口合同：`docs/arc/LUM-ARC-201` · `LUM-ARC-301`。
 - 称「无损」须通过 `lumina-res-skill` 三级门并归档；此前一律 **candidate lossless path**。
 

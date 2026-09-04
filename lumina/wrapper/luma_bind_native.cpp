@@ -8,6 +8,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <cstring>
 #include <stdexcept>
 #include <string>
 
@@ -28,26 +29,30 @@ static void luma_require_c_f32(const py::array &a, const char *name)
         throw std::runtime_error(std::string(name) + " must be C-contiguous");
 }
 
-/* 产品 Enc：长序列必须放 GIL；当前 codec 为候选恒等 ABI，非发表用压缩器。 */
+/* 产品 Enc：按最坏 RLE 分配 2n；返回长度为 enc_len 的视图。 */
 static py::array_t<float> kv_encode(py::array_t<float, py::array::c_style> x)
 {
     luma_require_c_f32(x, "x");
     auto buf = x.request();
     long n = static_cast<long>(buf.size);
-    py::array_t<float> enc(n);
+    long cap = (n <= 0) ? 0 : n * 2;
+    py::array_t<float> enc(cap);
     long enc_len = 0;
     int rc;
     {
         py::gil_scoped_release release;
         rc = luma_kv_encode_f32(static_cast<const float *>(buf.ptr), n,
-                                enc.mutable_data(), n, &enc_len);
+                                enc.mutable_data(), cap, &enc_len);
     }
     if (rc != LUMA_OK)
         luma_throw(rc, "luma_kv_encode_f32");
-    /* 恒等占位要求 enc_len==n；真压缩器落地后改为按 enc_len 截断视图。 */
-    if (enc_len != n)
-        throw std::runtime_error("luma_kv_encode_f32: unexpected enc_len");
-    return enc;
+    if (enc_len < 0 || enc_len > cap)
+        throw std::runtime_error("luma_kv_encode_f32: invalid enc_len");
+    /* 拷贝真实码长：enc 临时缓冲随后销毁，不能返回其内部指针。 */
+    py::array_t<float> out(enc_len);
+    if (enc_len > 0)
+        std::memcpy(out.mutable_data(), enc.data(), sizeof(float) * static_cast<size_t>(enc_len));
+    return out;
 }
 
 /* 产品 Dec：enc_len 与目标 n 由 C-ABI 校验。 */
@@ -70,9 +75,9 @@ static py::array_t<float> kv_decode(py::array_t<float, py::array::c_style> enc, 
 
 PYBIND11_MODULE(_luma_native, m)
 {
-    m.doc() = "Luminas product path (candidate lossless KV ABI). Not baselines.";
+    m.doc() = "Luminas product path (candidate RLE KV ABI). Not baselines.";
     m.def("luma_kv_encode", &kv_encode,
-          "candidate product Enc (identity placeholder; do not report ratio)");
+          "candidate product Enc (exact f32 RLE; not paper-lossless alone)");
     m.def("luma_kv_decode", &kv_decode, py::arg("enc"), py::arg("n"),
-          "candidate product Dec (identity placeholder)");
+          "candidate product Dec (exact f32 RLE expand)");
 }

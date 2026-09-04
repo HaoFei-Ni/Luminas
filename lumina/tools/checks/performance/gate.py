@@ -33,35 +33,67 @@ def perf_violations(config: dict[str, Any]) -> list[dict[str, str]]:
     standard = config.get("perf_standard", {})
     if not standard.get("enable", False):
         return []
-    baseline_path = Path(standard.get("baseline_path", "tests/python/baselines/l4_perf_baseline.json"))
-    max_ratio = float(standard.get("max_latency_regression", DEFAULT_MAX_REGRESSION))
-    if max_ratio > DEFAULT_MAX_REGRESSION:
-        return [
-            _violation(
-                "perf_standard",
-                f"最高档 max_latency_regression 不得超过 {DEFAULT_MAX_REGRESSION}",
-                max_ratio,
-                DEFAULT_MAX_REGRESSION,
-            )
-        ]
+    ratio_issue = _ratio_cap_violation(standard)
+    if ratio_issue:
+        return ratio_issue
     scores = _measure_relative_scores()
+    required = [str(item) for item in standard.get("required_score_keys", [])]
+    missing = [
+        _violation(
+            name,
+            "缺少产品 L4 工作负载（请 uv run python -m tools.run_build 并保证 pytest 能 import 扩展）",
+            0,
+            1,
+        )
+        for name in required  # 必须缺键即失败：避免扩展未构建时静默空跑
+        if name not in scores
+    ]
+    if missing:
+        return missing
+    baseline_path = Path(standard.get("baseline_path", "tests/python/baselines/l4_perf_baseline.json"))
+    baseline_issue = _load_baseline_or_violation(baseline_path)
+    if isinstance(baseline_issue, list):
+        return baseline_issue
+    max_ratio = float(standard.get("max_latency_regression", DEFAULT_MAX_REGRESSION))
+    return _compare_scores(scores, baseline_issue.get("scores", {}), max_ratio)
+
+
+def _ratio_cap_violation(standard: dict[str, Any]) -> list[dict[str, str]]:
+    """Reject configs that loosen the 2% industrial latency cap."""
+    max_ratio = float(standard.get("max_latency_regression", DEFAULT_MAX_REGRESSION))
+    if max_ratio <= DEFAULT_MAX_REGRESSION:
+        return []
+    return [
+        _violation(
+            "perf_standard",
+            f"最高档 max_latency_regression 不得超过 {DEFAULT_MAX_REGRESSION}",
+            max_ratio,
+            DEFAULT_MAX_REGRESSION,
+        )
+    ]
+
+
+def _load_baseline_or_violation(baseline_path: Path) -> dict[str, Any] | list[dict[str, str]]:
+    """Load baseline JSON or return a single violation list."""
     if not baseline_path.exists():
         return [_violation(str(baseline_path), "缺少 L4 性能基线文件（最高档强制）", 0, 1)]
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
-    if int(baseline.get("schema", 0)) != _BASELINE_SCHEMA:
-        return [
-            _violation(
-                str(baseline_path),
-                "性能基线 schema 不匹配",
-                int(baseline.get("schema", 0)),
-                _BASELINE_SCHEMA,
-            )
-        ]
-    return _compare_scores(scores, baseline.get("scores", {}), max_ratio)
+    if int(baseline.get("schema", 0)) == _BASELINE_SCHEMA:
+        return baseline
+    return [
+        _violation(
+            str(baseline_path),
+            "性能基线 schema 不匹配",
+            int(baseline.get("schema", 0)),
+            _BASELINE_SCHEMA,
+        )
+    ]
 
 
 def _measure_relative_scores() -> dict[str, float]:
     """Calibrate then bench; return relative scores (kernel/calib)."""
+    # 丢弃首次测量：避免冷启动把基线锁得过紧。
+    _ = time_callable(make_calib())
     calib = time_callable(make_calib())
     if calib.mean_s <= 0.0:
         raise RuntimeError("calibration mean must be positive")

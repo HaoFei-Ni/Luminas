@@ -6,6 +6,6 @@
     "max_regression": 0.02
   },
   "scores": {
-    "dense_saxpy_like": 4.849510726624674
+    "luma_kv_encode_decode_f32": 0.005033733988501752
   }
 }

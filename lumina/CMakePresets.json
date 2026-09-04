@@ -1,0 +1,52 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 18,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-ninja",
+      "displayName": "Windows Ninja + MSVC (CPU)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/../outputs/build/lumina",
+      "cacheVariables": {
+        "LUMINA_BUILD_PYTHON": "ON",
+        "LUMINA_BUILD_CUDA": "OFF",
+        "LUMINA_BUILD_FUSED_DECODE": "OFF",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "environment": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "windows-ninja-cuda",
+      "inherits": "windows-ninja",
+      "displayName": "Windows Ninja + MSVC (CUDA ON)",
+      "cacheVariables": {
+        "LUMINA_BUILD_CUDA": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-ninja",
+      "configurePreset": "windows-ninja"
+    },
+    {
+      "name": "windows-ninja-cuda",
+      "configurePreset": "windows-ninja-cuda"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-ninja",
+      "configurePreset": "windows-ninja",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

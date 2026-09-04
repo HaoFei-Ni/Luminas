@@ -146,6 +146,7 @@ file_patterns = ["**/tests/**", "**/.cache/**"]
 enable = true
 max_latency_regression = 0.02
 baseline_path = "tests/python/baselines/l4_perf_baseline.json"
+required_score_keys = ["luma_kv_encode_decode_f32"]
 
 # ------------------------------ C/C++/CUDA 结构度量 ------------------------------
 # algorithm/：运行时零循环（有限性扫描见 loop_allowed_functions）。
@@ -177,6 +178,10 @@ loop_allowed_file_patterns = ["kernel/**", "wrapper/**"]
 loop_allowed_functions = [
     "luma_kv_require_finite_f32",
     "luma_kv_require_finite_f64",
+    "luma_kv_encode_f32",
+    "luma_kv_decode_f32",
+    "luma_kv_run_length",
+    "luma_kv_expand_run",
 ]
 recursion_allowed_functions = []
 doc_comment_exempt_functions = []

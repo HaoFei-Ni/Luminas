@@ -44,21 +44,18 @@ const char *luma_strerror(int rc);
  */
 int luma_kv_ref_copy_f64(const double *x, long n, double *out);
 
-/* 候选产品 Enc/Dec。
+/* 候选产品 Enc/Dec（公式 ID：KV-ENC-CANDIDATE-1，见 LUM-ARC-201）。
  *
- * 当前实现是有限性检查后的恒等映射，压缩域长度恒等于 n。
- * 这是 ABI 与测试挂钩，不是发表用压缩器：禁止据此报告压缩比 ρ。
- * 真公式落地时：
- *   - Enc 可把 n 个 float 压成更短的 enc（enc_cap 是容量上界）；
- *   - Dec 把 enc 映回长度 n 的 Ŝ；
- *   - 继续用 luma_kv_ref_copy_f64 做 2-ulp 门（P2）。
+ * 精确 f32 游程编码：码流为 (value, count) 对；count∈[1,2^24] 且 float 可精确表示。
+ * 最坏 enc_len==2n（全互异）；可压缩时 enc_len<2n。禁止未过三级门称「无损」。
+ * 真公式再升级时保持本签名；调用方应按最坏情况提供 enc_cap≥2n（n>0）。
  *
  * 2-ulp 门：|Ŝ_i - S_i| <= 2 * 2^{-23} * max(1, |S_i|)，且无 NaN/Inf。
  * 输入输出不得重叠。
- * 返回：LUMA_OK | LUMA_ERR_ARG | LUMA_ERR_NUMERIC
+ * 返回：LUMA_OK | LUMA_ERR_ARG | LUMA_ERR_NUMERIC | LUMA_ERR_UNSUPPORTED
  */
 int luma_kv_encode_f32(const float *x, long n, float *enc, long enc_cap, long *enc_len);
-/* 恒等 Dec：要求 enc_len==n；真压缩器按码流还原到长度 n。 */
+/* RLE Dec：消费成对码流，展开后长度必须等于 n。 */
 int luma_kv_decode_f32(const float *enc, long enc_len, float *out, long n);
 
 #ifdef __cplusplus

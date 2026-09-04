@@ -15,6 +15,7 @@
 #   uv run pytest                          # Python 测试（纯 Python 必绿；原生扩展未构建时 skip）
 #   HYPOTHESIS_PROFILE=ci uv run pytest -n auto --junitxml=.cache/pytest/junit.xml
 #   uv run python -m tools.run_quality_gate
+#   uv run python -m tools.run_build --test   # CMake+ctest；Windows 先 . .\scripts\dev-env.ps1 -PersistUserPath
 # 提交级秒级门禁（ruff/fmt/认知复杂度）由根 .pre-commit-config.yaml 统一执行
 #
 # 数值门限：以 lumina/tests/c/* 为准，Python 工程测试不授予 lossless 论文声明
@@ -43,8 +44,9 @@ dev = [
     "hypothesis==6.167.1",   # 模糊测试用例生成，覆盖边界与异常输入
     "mypy==2.3.1",           # 静态类型检查，强制公共 API 类型注解完整
     "ruff==0.16.6",          # 静态代码检查 + 自动格式化
-    "complexipy==8.0.0",     # 认知复杂度统计（JSON 输出为扁平逐函数 schema，见 tools/quality_metrics.py）
+    "complexipy==8.0.0",     # 认知复杂度统计（JSON 输出为扁平逐函数 schema，见 tools/support/metrics.py）
     "pre-commit==4.6.2",     # Git 提交前置钩子，代码提交前强制执行全套门禁
+    "pybind11==3.0.1",       # CMake find_package(pybind11) + 绑定编译
 ]
 
 # ------------------------------ 常用命令（统一入口，文档化） ------------------------------

@@ -19,8 +19,8 @@
 | 符号 | 角色 | 现行实现 | 允许演进 |
 |---|---|---|---|
 | `luma_kv_ref_copy_f64` | FP64 预言机 | 有限输入逐元复制 | **语义冻结**；换压缩器不得改 |
-| `luma_kv_encode_f32` | 候选 Enc | 有限性检查 + 恒等 `memcpy`，`*enc_len = n` | 仅改函数体；保持签名 |
-| `luma_kv_decode_f32` | 候选 Dec | 要求 `enc_len == n` 的恒等还原 | 真压缩器按码流还原到长度 `n` |
+| `luma_kv_encode_f32` | 候选 Enc | 精确 f32 RLE（`KV-ENC-CANDIDATE-1`） | 保持签名；升级公式改函数体 |
+| `luma_kv_decode_f32` | 候选 Dec | RLE 展开至长度 `n` | 同上 |
 
 头文件真源：`algorithm/luma_kv.h`。
 
@@ -45,16 +45,16 @@
 
 ### 2.3 压缩比叙事
 
-恒等占位期间：**禁止**报告压缩比 ρ。真公式落地且 `enc_len`（或等价码长）可小于 `n` 后，ρ 仅可在实验归档中报告；称「无损」仍须通过 `lumina-res-skill` 三级门。
+恒等占位已退役。RLE 可在重复值上取得 `enc_len < 2n`；ρ 仅可在实验归档中报告。称「无损」仍须通过 `lumina-res-skill` 三级门（本候选仅保证 bit-exact 重构与工程 2-ulp）。
 
 ## 3. 公式 ID 槽位（待填真公式）
 
 | ID | 含义 | 状态 |
 |---|---|---|
-| `KV-ENC-CANDIDATE-0` | 现行恒等 Enc/Dec | **现行** |
-| `KV-ENC-CANDIDATE-1` | 下一候选真压缩器（待选型） | 空 |
-| `KV-FLOP-<id>` | 每元素 / 每头 FLOP 上界 | 空；L4 不得伪造 saxpy 顶替 |
-| `KV-BYTES-<id>` | 峰值工作集字节 | 空 |
+| `KV-ENC-CANDIDATE-0` | 历史恒等 Enc/Dec（已退役） | 退役 |
+| `KV-ENC-CANDIDATE-1` | 精确 f32 游程编码 `(value,count)` 对 | **现行** |
+| `KV-FLOP-CANDIDATE-1` | 最坏 O(n) 扫描 + O(n) 展开 | 现行（L4 键 `luma_kv_encode_decode_f32`） |
+| `KV-BYTES-CANDIDATE-1` | 码流最坏 `2n` 个 float；可压缩时更短 | 现行 |
 
 选型 `KV-ENC-CANDIDATE-1` 时必须同步更新本表、头注释与 L4 `required_score_keys`。
 
