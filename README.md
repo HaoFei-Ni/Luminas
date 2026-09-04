@@ -33,7 +33,8 @@ lumina/                        唯一原创内容区
 
 - 技能优先级：`lumina-arc-skill` > `lumina-eng-skill` > `lumina-res-skill` > Orchestra  
 - 分层裁决：`lumina/docs/arc/LUM-ARC-101`  
-- 无损未过三级门前：写作 **candidate lossless path**  
+- 无损未过三级门前：写作 **candidate lossless path**（产品 Enc/Dec 现为恒等 ABI 占位）  
+- 绑定分区：`_luma_native`（产品）· `_luma_baseline`（有损）· `_luma_cuda`（CUDA 基线）  
 - GPU 档位：**S = 4 GB / M = 24 GB / L = 80 GB**
 
 ## 快速入口

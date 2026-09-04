@@ -6,7 +6,7 @@
 | 版本 | 1.1 |
 | 日期 | 2026-09-05 |
 | 权威技能 | `lumina-eng-skill` |
-| 关联文档 | `LUM-ENG-101` · `LUM-ENG-201` · `LUM-ENG-301` · `references/test-matrix.md` |
+| 关联文档 | `LUM-ENG-101` · `LUM-ENG-201` · `LUM-ENG-301` · `LUM-ENG-401` · `references/test-matrix.md` |
 
 ## 1. 目的
 
@@ -53,3 +53,4 @@ OOM 时必须 degrade（缩小 tile），禁止静默 abort。无损 KV 路径�
 | `LUM-ENG-101` | 命名与编码 |
 | `LUM-ENG-201` | 构建与依赖 |
 | `LUM-ENG-301` | 测试工具链入口 |
+| `LUM-ENG-401` | 全量质量评审与整改路线图；目标阈值见 `quality-gate.l5-target.toml` |

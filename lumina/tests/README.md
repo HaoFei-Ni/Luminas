@@ -10,7 +10,7 @@
 | `c/test_luma_baseline.c` | 有损基线 L1 / L2 |
 | `python/checks/` | 门禁单元测试（镜像 `tools/checks/`） |
 | `python/support/` | cache / metrics 支撑测试 |
-| `python/product/` | 绑定 / 内核产品用例 |
+| `python/product/` | `_luma_native` 产品用例 + `_luma_baseline` 有损基线用例 |
 | `python/conftest.py` · `helpers.py` · `baselines/` | pytest 共享夹具与 L4 基线 |
 | `reports/` | 质量门禁产物（`complexipy.json`、`quality-gate.md` / `.json`；gitignore） |
 
@@ -40,4 +40,4 @@ C 测试：
 ctest --test-dir outputs/build/lumina --output-on-failure
 ```
 
-构建入口：`lumina/CMakeLists.txt`（superproject）；产物 `_luma_native` / `_luma_cuda` 落在 `outputs/build/lumina/wrapper`。
+构建入口：`lumina/CMakeLists.txt`（superproject）；产物 `_luma_native` / `_luma_baseline` / `_luma_cuda` 落在 `outputs/build/lumina/wrapper`。

@@ -3,7 +3,7 @@
 职责
 ====
 1. 从 ``quality-gate.toml`` ``[cache]`` / ``[hypothesis]`` 加载配置并注册 profile。
-2. 提供原生扩展 fixture：``luma_native`` / ``luma_cuda``（缺扩展时按测试 skip）。
+2. 提供原生扩展 fixture：``luma_native`` / ``luma_baseline`` / ``luma_cuda``（缺扩展时按测试 skip）。
 3. L5 数值门辅助 ``ulp2_limit`` 见同目录 ``helpers.py``（勿从本文件 import）。
 
 Hypothesis
@@ -80,8 +80,14 @@ _install_hypothesis_profiles()
 
 @pytest.fixture(scope="session")
 def luma_native() -> Any:
-    """Load ``_luma_native``; skip the requesting test when the extension is absent."""
+    """Load ``_luma_native`` (product KV); skip when the extension is absent."""
     return pytest.importorskip("_luma_native")
+
+
+@pytest.fixture(scope="session")
+def luma_baseline() -> Any:
+    """Load ``_luma_baseline`` (lossy only); skip when the extension is absent."""
+    return pytest.importorskip("_luma_baseline")
 
 
 @pytest.fixture(scope="session")

@@ -1,6 +1,6 @@
 """C 函数 span 切分：定义名 + 花括号配对.
 
-从 ``c_quality_metrics`` 拆出，压低单文件函数数与 span 解析认知/嵌套复杂度。
+从 ``tools.checks.native.metrics`` 拆出，压低单文件函数数与 span 解析认知/嵌套复杂度。
 """
 
 from __future__ import annotations

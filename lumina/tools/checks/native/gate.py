@@ -3,7 +3,7 @@
 注释策略真值源：``quality-gate.toml`` 的 ``[comment_standard]``（接入本模块）。
 ``[c_features]`` 中的文档开关与之对齐；``require_inline_on_complex`` 检查复杂行行内注释。
 
-本文件只编排阈值比对；测量逻辑在 ``c_quality_metrics``。
+本文件只编排阈值比对；测量逻辑在 ``tools.checks.native.metrics``。
 """
 
 from __future__ import annotations

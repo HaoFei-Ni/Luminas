@@ -6,7 +6,7 @@
 
 | 平面 | 目录 | 职责 | 状态 |
 |---|---|---|---|
-| **Product**（冻结） | `algorithm/` → `kernel/` → `wrapper/` | 可交付算子栈（物理三层，CMake superproject） | 已启用 |
+| **Product**（冻结） | `algorithm/` → `kernel/` → `wrapper/` | 可交付算子栈（物理三层，CMake superproject） | **候选 ABI**：Enc/Dec 仍为恒等占位，未过三级门前禁止称「无损」 |
 | **Engineering** | `tools/` · `tests/` | 质量门禁 + C/Python 测试 | 已启用 |
 | **Knowledge** | `docs/` · `theory/` · `refs/` | LUM-* 规范、表征坍缩理论、外部文献 | 草案 / 启用并存 |
 | **Research ops** | `research/` → `experiments/` | 实验协议 / lab log → `EXP-*` 归档 | 骨架 |
@@ -24,6 +24,13 @@
 | `wrapper/` | 对外 API / pybind 封装 |
 
 禁止改名或塞入 `src/`；与职责四层的裁决见 `LUM-ARC-101`。
+
+## 产品成熟度（诚实口径）
+
+- 产品扩展：`_luma_native` → 仅 `luma_kv_encode` / `luma_kv_decode`（**candidate**，恒等占位）。
+- 有损基线扩展：`_luma_baseline` / `_luma_cuda` → quant / SVD / int8；**不是**产品无损路径。
+- 算子与接口合同：`docs/arc/LUM-ARC-201` · `LUM-ARC-301`。
+- 称「无损」须通过 `lumina-res-skill` 三级门并归档；此前一律 **candidate lossless path**。
 
 ## Engineering 入口
 

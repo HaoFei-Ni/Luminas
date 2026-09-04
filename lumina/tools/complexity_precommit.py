@@ -3,7 +3,7 @@
 提交前分级门禁的「认知复杂度强校验」层：只扫本次暂存的 lumina Python 文件，
 复杂度数据来自 complexipy（多版本 schema 由 quality_metrics 归一化），阈值
 取 quality-gate.toml 的单一真值源（max_cognitive_complexity）。超出即失败并
-阻断提交；不执行全量四项门禁（那些下沉到 CI/手动入口 ci_quality_gate.py）。
+阻断提交；不执行全量四项门禁（那些下沉到 CI/手动入口 ``tools.run_quality_gate``）。
 
 被 pre-commit 以 ``uv run --directory lumina python -m tools.complexity_precommit``
 调用，argv 为暂存的 Python 文件路径（相对仓库根或绝对路径）。

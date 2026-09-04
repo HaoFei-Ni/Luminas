@@ -1,0 +1,171 @@
+# ==============================================================================
+# Luminas 质量门禁 — L5 目标配置（可替换草案）
+# ------------------------------------------------------------------------------
+# 用途：审查通过后整文件替换 quality-gate.toml。
+# 权威评审：docs/eng/LUM-ENG-401_全量质量评审与整改路线图.md
+# 执行器：tools.run_quality_gate
+#          → reporting.python_gate / checks.native.gate / naming.gate / performance.gate
+#          提交前：tools.complexity_precommit
+#
+# 相对现行 quality-gate.toml 的故意收紧 / 增补：
+#   1. [c_thresholds] 增加圈复杂度≤5、if 嵌套≤2（对齐 lumina-eng-skill；需 native.gate 读键）
+#   2. [perf_standard] 声明产品核工作负载键（需 workloads.py 同步）
+#   3. [hypothesis] 保持 ha=5000；增补产品路径测试约定注释
+#   4. 清除旧模块名（ci_quality_gate / c_quality_gate）表述
+#   5. 禁止放宽 Python 5-nines 既有阈值
+# ==============================================================================
+
+[cache]
+root = ".cache"
+pytest = "pytest"
+mypy = "mypy"
+ruff = "ruff"
+hypothesis = "hypothesis"
+uv = "uv"
+complexipy_vendor = ".complexipy_cache"
+
+# ------------------------------ Hypothesis ------------------------------
+# 产品 Enc/Dec 必须在 tests/python/product/ 消费本节；否则视为门禁配置空转。
+[hypothesis]
+default_profile = "dev"
+
+[hypothesis.profiles.dev]
+max_examples = 1000
+deadline_ms = 3000
+print_blob = true
+persist_examples = true
+derandomize = true
+
+[hypothesis.profiles.ci]
+max_examples = 500
+deadline_ms = 3000
+print_blob = true
+derandomize = true
+persist_examples = false
+
+[hypothesis.profiles.ha]
+max_examples = 5000
+deadline_ms = 60000
+derandomize = true
+print_blob = true
+stateful_step_count = 200
+max_examples_per_run = 1000
+suppress_health_check = false
+persist_examples = true
+
+# ------------------------------ Python 扫描 ------------------------------
+# theory/ 属 F1–F7，不进结构门禁。runtime/ 落地后纳入 include_paths。
+[scan]
+include_paths = [
+    "tools",
+    "tests",
+]
+
+[thresholds]
+max_cognitive_complexity = 8
+max_cyclomatic_complexity = 8
+max_control_nesting_depth = 3
+max_function_physical_lines = 50
+max_function_count_per_file = 8
+max_file_physical_lines = 300
+max_code_duplication_ratio = 3
+max_cyclic_dependencies = 0
+max_module_fan_out = 8
+max_inheritance_depth = 4
+max_duplicate_code_blocks = 0
+max_unchecked_exception_paths = 0
+max_global_state_variables = 2
+max_none_reference_risk = 0
+
+[line_counting]
+count_blank_lines = false
+count_comment_lines = false
+
+[features]
+enable_file_lines_check = true
+enable_function_count_check = true
+enable_function_lines_check = true
+enable_cognitive_complexity_check = true
+enable_cyclomatic_complexity_check = true
+enable_control_nesting_check = true
+enable_recursion_check = true
+enable_architecture_check = true
+enable_ha_check = true
+
+[report]
+document_id = "LUM-QG-PY"
+json_report_path = "tests/reports/complexipy.json"
+markdown_report_path = "tests/reports/quality-gate.md"
+summary_json_path = "tests/reports/quality-gate.json"
+title = "Luminas Python 质量门禁 / Quality Gate"
+description = "控制项 / Controls：认知·圈复杂度、嵌套、文件/函数规模、自递归、架构（环/扇出/继承/克隆）、高可用（异常/全局态/空引用）。"
+show_full_detail = true
+violation_headers = ["目标 / Target", "问题 / Finding", "当前值 / Actual", "上限 / Limit"]
+function_headers = ["函数 / Function", "物理行数 / Physical lines", "认知复杂度 / Cognitive complexity"]
+pass_text = "通过 / PASS — 全部已启用控制项均在阈值内。"
+fail_text = "未通过 / FAIL — 质量门禁阻断；请修复后再合并/发布。"
+
+[exclusions]
+file_patterns = [".cache/**", "__pycache__/**"]
+function_names = ["main"]
+recursion_allowed_functions = []
+
+[comment_standard]
+require_file_banner = true
+require_function_doc = true
+require_header_decl_doc = true
+require_inline_on_complex = true
+require_why_semantics = true
+inline_exclude_file_patterns = ["theory/**", "tests/**"]
+why_include_file_patterns = ["**"]
+
+[naming_standard]
+enable = true
+allow_baseline_macro_aliases = false
+file_allowlist = []
+include_paths = ["algorithm", "kernel", "wrapper"]
+file_patterns = ["**/tests/**", "**/.cache/**"]
+
+# ------------------------------ 性能 L4 ------------------------------
+# 工作负载必须命中产品 Binding（或文档化的核入口），禁止仅以 list-saxpy 顶替。
+[perf_standard]
+enable = true
+max_latency_regression = 0.02
+baseline_path = "tests/python/baselines/l4_perf_baseline.json"
+# 编排层读取的分数键（实现于 checks/performance/workloads.py）
+required_score_keys = ["luma_kv_encode_decode_f32"]
+
+# ------------------------------ C/C++/CUDA ------------------------------
+[c_scan]
+include_paths = ["algorithm", "kernel", "wrapper"]
+
+[c_thresholds]
+max_header_physical_lines = 300
+max_impl_physical_lines = 500
+max_function_physical_lines = 80
+max_functions_per_file = 15
+max_loop_count_per_function = 0
+max_loop_nesting_depth = 1
+# 对齐 lumina-eng-skill §结构度量；native.gate 须实现后生效，禁止先放宽
+max_cyclomatic_complexity = 5
+max_if_nesting_depth = 2
+
+[c_features]
+enable_file_lines_check = true
+enable_function_count_check = true
+enable_function_lines_check = true
+enable_loop_check = true
+enable_loop_nesting_check = true
+enable_recursion_check = true
+enable_cyclomatic_check = true
+enable_if_nesting_check = true
+
+[c_exclusions]
+file_patterns = ["**/tests/**", "**/.cache/**"]
+loop_allowed_file_patterns = ["kernel/**", "wrapper/**"]
+loop_allowed_functions = [
+    "luma_kv_require_finite_f32",
+    "luma_kv_require_finite_f64",
+]
+recursion_allowed_functions = []
+doc_comment_exempt_functions = []

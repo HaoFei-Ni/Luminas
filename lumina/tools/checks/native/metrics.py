@@ -1,6 +1,6 @@
 """C/CUDA 结构度量：文件/函数行数、循环、自递归、文档注释标志.
 
-本模块只*测量*，不判违规；阈值与开关在 ``c_quality_gate`` + quality-gate.toml。
+本模块只*测量*，不判违规；阈值与开关在 ``tools.checks.native.gate`` + quality-gate.toml。
 解析策略：轻量正则 + 花括号配对，避免强制依赖 compile_commands.json。
 """
 

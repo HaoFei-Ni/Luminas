@@ -16,4 +16,4 @@
 
 ## 2. 现状指针
 
-统一入口为 superproject：`lumina/CMakeLists.txt`。目标链：`luma_algorithm` → `luma_cpu` / `luma_cuda` → `_luma_native` / `_luma_cuda`。构建与测试命令见根 `README.md` 与 `lumina/tests/README.md`。
+统一入口为 superproject：`lumina/CMakeLists.txt`。目标链：`luma_algorithm` → `luma_cpu` / `luma_cuda` → `_luma_native` / `_luma_baseline` / `_luma_cuda`。构建与测试命令见根 `README.md` 与 `lumina/tests/README.md`。

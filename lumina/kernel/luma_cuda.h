@@ -13,6 +13,12 @@
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
 
+/**
+ * 平台后端错误码（CUDA launch / runtime）。数值槽 -4 在 algorithm 枚举中留空，
+ * 仅本头与 CUDA 源使用，保持纯算法契约无硬件语义。
+ */
+#define LUMA_ERR_CUDA (-4)
+
 /** fused-decode 共享内存按此上限分配；超过返回 LUMA_ERR_UNSUPPORTED。 */
 #define LUMA_CUDA_MAX_HEAD_DIM 256
 

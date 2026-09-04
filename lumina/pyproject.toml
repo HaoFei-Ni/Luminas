@@ -4,7 +4,7 @@
 # 职责边界：
 #   - 本文件只管 Python 侧门禁（静态检查 + 类型检查 + Python 测试），不参与 CMake 构建
 #   - C/CUDA/pybind 走 lumina/CMakeLists.txt（superproject），产物 _luma_native /
-#     _luma_cuda 落在 outputs/build/lumina/wrapper
+#     _luma_baseline / _luma_cuda 落在 outputs/build/lumina/wrapper
 #   - Python 在 Luminas 只做 glue / 测试：禁止在 Python 里写算子或 KV 数值算法
 #     （lumina-eng-skill § Python scheduler）。新调度/入口代码也纳入 mypy 门禁
 #
@@ -14,8 +14,7 @@
 #   uv run mypy .                          # 类型检查（含门禁脚本 + tests + theory）
 #   uv run pytest                          # Python 测试（纯 Python 必绿；原生扩展未构建时 skip）
 #   HYPOTHESIS_PROFILE=ci uv run pytest -n auto --junitxml=.cache/pytest/junit.xml
-#   uv run complexipy && uv run python -m tools.reporting.python_gate   # 全量四项门禁 + 健康度报告
-#   或：uv run python -m tools.run_quality_gate
+#   uv run python -m tools.run_quality_gate
 # 提交级秒级门禁（ruff/fmt/认知复杂度）由根 .pre-commit-config.yaml 统一执行
 #
 # 数值门限：以 lumina/tests/c/* 为准，Python 工程测试不授予 lossless 论文声明
@@ -24,7 +23,7 @@
 [project]
 name = "lumina"
 version = "0.1.0"
-description = "Luminas lossless KV-cache compression — Python gate (pytest/mypy/ruff)"
+description = "Luminas candidate lossless KV-cache path — Python gate (pytest/mypy/ruff)"
 requires-python = ">=3.12"
 # 无 pip 安装产物；依赖仅用于锁 Python 工具链版本（uv.lock，LUM-ENG-201）
 dependencies = []
@@ -121,7 +120,7 @@ markers = [
     "l4: benchmark / perf gate (default CI via tools.checks.performance.gate; 2 warmup + 5 timed, ≤2%)",
     "l5: 2-ulp lossless-numeric gate (product KV paths only)",
     "theory: state-cache F1–F7 (run via verify-degeneration.py; not product L5)",
-    "native: requires built _luma_native extension",
+    "native: requires built _luma_native or _luma_baseline extension",
     "cuda: requires built _luma_cuda extension",
 ]
 

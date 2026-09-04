@@ -1,6 +1,6 @@
 """C 文件级结构/文档违规检查.
 
-从 ``c_quality_gate`` 拆出，避免单文件函数数与文件级检查认知复杂度超限。
+从 ``tools.checks.native.gate`` 拆出，避免单文件函数数与文件级检查认知复杂度超限。
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 """Python 函数级结构门禁：行数 / 认知·圈复杂度 / 控制嵌套 / 自递归.
 
-从 ``ci_quality_gate`` 拆出，避免单文件函数数与 C901 超限。
+从 ``tools.reporting.python_gate`` 拆出，避免单文件函数数与 C901 超限。
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 """C 函数级结构门禁：尺寸 / 循环 / 嵌套 / 递归 / 文档 / 行内复杂注释.
 
-从 ``c_quality_gate`` 拆出，用表驱动压低单函数检查复杂度。
+从 ``tools.checks.native.gate`` 拆出，用表驱动压低单函数检查复杂度。
 """
 
 from __future__ import annotations

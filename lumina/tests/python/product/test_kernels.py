@@ -1,7 +1,6 @@
-"""L2 / L3 / L5: pybind bind + kernel agree when ``_luma_native`` is built.
+"""L2 / L3 / L5: product ``_luma_native`` bind agrees with algorithm when built.
 
-纯 Python 环境无扩展时，本模块用例全部 skip（非整文件跳过），不影响
-``uv run pytest`` 退出码；构建扩展后自动转为真实 L3/L5 门禁。
+纯 Python 环境无扩展时，本模块用例全部 skip；有损基线见 ``test_baselines.py``。
 """
 
 from __future__ import annotations
@@ -35,12 +34,3 @@ def test_kv_decode_rejects_len_mismatch(luma_native: Any) -> None:
     enc = np.asarray(luma_native.luma_kv_encode(x))
     with pytest.raises(RuntimeError, match="invalid argument"):
         luma_native.luma_kv_decode(enc, 3)
-
-
-@pytest.mark.native
-@pytest.mark.l2
-def test_baseline_ternary_rejects_bad_threshold(luma_native: Any) -> None:
-    """Ternary baseline must reject a negative threshold (documented L2)."""
-    weights = np.array([1.0, 2.0], dtype=np.float32)
-    with pytest.raises(RuntimeError, match="invalid argument"):
-        luma_native.luma_quant_ternary_encode(weights, -0.1)

@@ -101,7 +101,7 @@ enable_architecture_check = true
 enable_ha_check = true
 
 # ------------------------------ 报告（落盘 tests/reports/；gitignore） ------------------------------
-# complexipy.json：工具原始认知复杂度 feed（ci_quality_gate 输入）
+# complexipy.json：工具原始认知复杂度 feed（reporting.python_gate 输入）
 # quality-gate.md / .json：门禁裁决产物（人读 + CI 机读）
 [report]
 document_id = "LUM-QG-PY"
@@ -133,7 +133,7 @@ require_why_semantics = true
 inline_exclude_file_patterns = ["theory/**", "tests/**"]
 why_include_file_patterns = ["**"]
 
-# ------------------------------ 命名（LUM-ENG-101；规则在 naming_rules.py） ------------------------------
+# ------------------------------ 命名（LUM-ENG-101；规则在 tools.checks.naming.rules） ------------------------------
 [naming_standard]
 enable = true
 allow_baseline_macro_aliases = false
@@ -161,7 +161,7 @@ max_functions_per_file = 15
 max_loop_count_per_function = 0
 max_loop_nesting_depth = 1
 
-# 文档/行内开关勿写于此：真值源 [comment_standard]（c_quality_gate.comment_features 覆盖）。
+# 文档/行内开关勿写于此：真值源 [comment_standard]（native.gate 经 comment_features 覆盖）。
 [c_features]
 enable_file_lines_check = true
 enable_function_count_check = true

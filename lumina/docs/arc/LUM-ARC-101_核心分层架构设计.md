@@ -51,7 +51,7 @@
 **原技术债**：`algorithm/` 源 `#include "luma_kernel.h"`（位于 `kernel/`），构成 algorithm→kernel 的头依赖。已按下列方案消除：
 
 1. 抽出纯算法层契约 → `algorithm/luma_kv.h`（错误码、`luma_strerror`、`luma_kv_*` / `luma_kv_ref_*` 声明）。
-2. `kernel/luma_kernel.h` 只保留有损基线声明（`luma_quant_*` / `luma_svd_*`）并经 `baseline/luma_limits.h` 纳入错误码；`LUMA_CUDA_MAX_HEAD_DIM` 在 `luma_cuda.h`。
+2. `kernel/luma_kernel.h` 只保留有损基线声明（`luma_quant_*` / `luma_svd_*`）并经 `baseline/luma_limits.h` 纳入错误码；`LUMA_CUDA_MAX_HEAD_DIM` 与 `LUMA_ERR_CUDA`（`-4`）在 `luma_cuda.h`。
 3. `luma_status.c` 随错误码定义归属 `algorithm/`（**归属决策：algorithm/，非独立 common/**）；`algorithm/` 源改 include 本层 `luma_kv.h`。
 4. 同步 `kernel/CMakeLists.txt`（源路径 `../algorithm/luma_status.c`、include 目录加 `../algorithm`）与各 README。
 
@@ -65,9 +65,19 @@
 
 > 验证（2026-09-04）：superproject 编译 12/12，`ctest` 2/2 全绿。
 
+### Phase D（已完成，2026-09-05）— P0 隔离与契约正文
+
+| 项 | 内容 |
+|---|---|
+| 绑定分区 | `_luma_native`（仅产品）与 `_luma_baseline`（有损）分模块；native 只链 `luma_algorithm` |
+| 错误码 | `LUMA_ERR_CUDA` 迁出 `luma_kv.h` 枚举，改为 `luma_cuda.h` 的 `-4` 宏；`luma_strerror(-4)` → `platform backend error` |
+| 契约 | `LUM-ARC-201` / `LUM-ARC-301` 升为生效最小正文 |
+| 卫生 | 删除空 `kernel/test/`；清理旧门禁模块名注释 |
+
 ## 待办
 
 - [x] 冻结 `algorithm/`、`wrapper/` 首批文件清单（Phase A）
 - [x] 迁移并同步 CMake / README（Phase A）
 - [x] Phase B 头拆分（`luma_kv.h` / `luma_status.c` 归 `algorithm/`；ctest 验证待可构建环境）
+- [x] Phase D P0 隔离与 ARC-201/301 最小正文
 - [ ] 三技能 owner 终审本文件（`lumina-arc-skill` / `lumina-eng-skill` / `lumina-res-skill`；正式签字记录留痕）

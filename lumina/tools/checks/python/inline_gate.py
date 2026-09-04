@@ -1,6 +1,6 @@
 """Python 侧复杂语句行内注释门禁（由 comment_standard 驱动）.
 
-从 ``ci_quality_gate`` 拆出，避免单文件函数数超过阈值。
+从 ``tools.reporting.python_gate`` 拆出，避免单文件函数数超过阈值。
 L0：邻接 ``#`` 存在即可；L4：``why_include_file_patterns`` 命中时要求 why 线索。
 """
 

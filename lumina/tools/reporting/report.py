@@ -1,6 +1,6 @@
 """Quality-gate report writer (Markdown + machine-readable summary).
 
-Split from ``ci_quality_gate`` to keep structure metrics under the file/function caps.
+Split from ``tools.reporting.python_gate`` to keep structure metrics under the file/function caps.
 Markdown is bilingual (zh-CN / en); JSON keys stay English for CI parsers.
 """
 
@@ -228,11 +228,10 @@ def _violation_section(report_cfg: dict[str, Any], violations: list[dict[str, st
         "| " + " | ".join(report_cfg["violation_headers"]) + " |",
         "|---|---|---|---|",
     ]
-    # 必须单行生成表行：避免多行 genexp 的 for 被行扫描误判为裸循环。
     rows.extend(
         [
             f"| `{i['target']}` | {i['issue']} / {_ISSUE_EN.get(i['issue'], i['issue'])} | {i['current']} | {i['limit']} |"
-            for i in violations
+            for i in violations  # 必须单行 listcomp：避免多行 for 被门禁误判为裸循环
         ]
     )
     rows.append("")

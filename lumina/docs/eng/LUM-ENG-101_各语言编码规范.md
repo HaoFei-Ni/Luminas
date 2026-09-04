@@ -74,7 +74,8 @@
 
 - 模块/函数/变量：`snake_case`；类 `PascalCase`；常量 `UPPER_SNAKE`（如 `ULP32`）。
 - 绑定导出名**必须与 C ABI 符号一一对应**，不得脱落 `luma_`/`cuda_` 前缀：
-  - `_luma_native.luma_kv_encode` / `luma_quant_ternary_encode` / `luma_svd_truncate`；
+  - `_luma_native.luma_kv_encode` / `luma_kv_decode`（产品 candidate）；
+  - `_luma_baseline.luma_quant_ternary_encode` / `luma_quant_power_of_two_encode` / `luma_svd_truncate`；
   - `_luma_cuda.luma_cuda_kv_quant_int8`。
 - 测试文件：`test_*.py`；核验脚本：`verify_*.py`；二者区分，不得混用。
 ## 5. 文件 / 目录命名规范
@@ -109,7 +110,7 @@
 
 复杂场景示例（须行内注释）：Jacobi 旋转角、在线 softmax 重标定、power-of-two/尾数 frexp、CUDA `__syncthreads` 前后共享状态、Gram 上三角镜像、σ≈0 置零。
 
-门禁：`quality-gate.toml` `[comment_standard]` 由 `c_quality_gate` / `ci_quality_gate` **强制接线**：
+门禁：`quality-gate.toml` `[comment_standard]` 由 `tools.checks.native.gate` / `tools.reporting.python_gate` **强制接线**：
 文件 banner、函数/声明前置文档、复杂语句行内注释（循环 / `__syncthreads` / `frexp`/`ldexp`/`exp2f`/`floor(log2)`；Python 为 `for`/`while` + `#`）。
 - **L0**（默认存在性）：邻接有注释即过。
 - **L4**（`require_why_semantics`）：邻接注释须命中 why 线索词，且不得是 what 模板句；默认 `why_include_file_patterns = ["**"]`（全生产路径最高档）。

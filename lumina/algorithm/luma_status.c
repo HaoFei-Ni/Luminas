@@ -13,8 +13,8 @@ const char *luma_strerror(int rc)
         return "out of memory";
     case LUMA_ERR_NUMERIC:
         return "numeric failure";
-    case LUMA_ERR_CUDA:
-        return "cuda error";
+    case -4: /* 保留槽：LUMA_ERR_CUDA（定义在 luma_cuda.h），稳定 ABI 短句 */
+        return "platform backend error";
     case LUMA_ERR_UNSUPPORTED:
         return "unsupported shape or feature";
     default:

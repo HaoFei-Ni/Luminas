@@ -17,13 +17,14 @@
 extern "C" {
 #endif
 
-/* 统一错误码。0 成功；负值失败。绑定层用 luma_strerror 映射异常。 */
+/* 统一错误码。0 成功；负值失败。绑定层用 luma_strerror 映射异常。
+ * 槽位 -4 保留给平台后端（CUDA 等），定义见 kernel/luma_cuda.h 的 LUMA_ERR_CUDA；
+ * 本纯算法头不声明平台错误枚举项，避免 algorithm 依赖硬件语义。 */
 typedef enum luma_status_e {
     LUMA_OK = 0,              /* 成功 */
     LUMA_ERR_ARG = -1,        /* 空指针、非法维度、非法超参 */
     LUMA_ERR_NOMEM = -2,      /* calloc/malloc 失败 */
     LUMA_ERR_NUMERIC = -3,    /* NaN/Inf、Jacobi 未收敛等 */
-    LUMA_ERR_CUDA = -4,       /* launch 或 runtime API 失败 */
     LUMA_ERR_UNSUPPORTED = -5 /* 超出实现上限（维数、头维等） */
 } luma_status_t;
 

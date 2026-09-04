@@ -1,9 +1,9 @@
-/* luma_bind_native.cpp — pybind11 纯胶水。
+/* luma_bind_native.cpp — 产品路径 pybind 胶水（仅 luma_kv_*）。
  *
  * 允许：dtype/连续性检查、缓冲分配、GIL 释放、错误码→异常。
- * 禁止：量化、SVD、KV 数学。数值一律走 luma_kernel.h。
+ * 禁止：量化、SVD、CUDA、任何有损基线。有损基线见 _luma_baseline。
  */
-#include "luma_kernel.h"
+#include "luma_kv.h"
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -28,18 +28,7 @@ static void luma_require_c_f32(const py::array &a, const char *name)
         throw std::runtime_error(std::string(name) + " must be C-contiguous");
 }
 
-/* SVD 入口限定 2-D float64，与 C-ABI 行主序契约对齐。 */
-static void luma_require_c_f64_2d(const py::array &a, const char *name)
-{
-    if (a.ndim() != 2)
-        throw std::runtime_error(std::string(name) + " must be 2-D");
-    if (a.dtype().kind() != 'f' || a.dtype().itemsize() != 8)
-        throw std::runtime_error(std::string(name) + " must be float64");
-    if ((a.flags() & py::array::c_style) == 0)
-        throw std::runtime_error(std::string(name) + " must be C-contiguous");
-}
-
-/* 产品 Enc 绑定：长序列必须放 GIL，核内持锁无吞吐收益。 */
+/* 产品 Enc：长序列必须放 GIL；当前 codec 为候选恒等 ABI，非发表用压缩器。 */
 static py::array_t<float> kv_encode(py::array_t<float, py::array::c_style> x)
 {
     luma_require_c_f32(x, "x");
@@ -55,12 +44,13 @@ static py::array_t<float> kv_encode(py::array_t<float, py::array::c_style> x)
     }
     if (rc != LUMA_OK)
         luma_throw(rc, "luma_kv_encode_f32");
+    /* 恒等占位要求 enc_len==n；真压缩器落地后改为按 enc_len 截断视图。 */
     if (enc_len != n)
         throw std::runtime_error("luma_kv_encode_f32: unexpected enc_len");
     return enc;
 }
 
-/* 产品 Dec 绑定：enc_len 与目标 n 由 C-ABI 校验。 */
+/* 产品 Dec：enc_len 与目标 n 由 C-ABI 校验。 */
 static py::array_t<float> kv_decode(py::array_t<float, py::array::c_style> enc, long n)
 {
     luma_require_c_f32(enc, "enc");
@@ -78,79 +68,11 @@ static py::array_t<float> kv_decode(py::array_t<float, py::array::c_style> enc, 
     return out;
 }
 
-/* 有损三值基线绑定：返回 (scale, codes)。 */
-static py::tuple quant_ternary_encode(py::array_t<float, py::array::c_style> w, float threshold)
-{
-    luma_require_c_f32(w, "w");
-    auto buf = w.request();
-    long n = static_cast<long>(buf.size);
-    py::array_t<signed char> codes(n);
-    float scale = 0.0f;
-    int rc;
-    {
-        py::gil_scoped_release release;
-        rc = luma_quant_ternary_encode(static_cast<const float *>(buf.ptr), &scale,
-                                       codes.mutable_data(), n, threshold);
-    }
-    if (rc != LUMA_OK)
-        luma_throw(rc, "luma_quant_ternary_encode");
-    return py::make_tuple(scale, codes);
-}
-
-/* 有损 power-of-two 块量化绑定。 */
-static py::array_t<float> quant_power_of_two_encode(py::array_t<float, py::array::c_style> x,
-                                           int mantissa_bits, int block_size)
-{
-    luma_require_c_f32(x, "x");
-    auto buf = x.request();
-    long n = static_cast<long>(buf.size);
-    py::array_t<float> out(n);
-    int rc;
-    {
-        py::gil_scoped_release release;
-        rc = luma_quant_power_of_two_encode(static_cast<const float *>(buf.ptr), out.mutable_data(),
-                                   n, mantissa_bits, block_size);
-    }
-    if (rc != LUMA_OK)
-        luma_throw(rc, "luma_quant_power_of_two_encode");
-    return out;
-}
-
-/* 有损截断 SVD 绑定：r 夹紧到合法秩，避免 Python 侧直接崩。 */
-static py::tuple svd_truncate(py::array_t<double, py::array::c_style> x, int r)
-{
-    luma_require_c_f64_2d(x, "x");
-    auto buf = x.request();
-    int m = static_cast<int>(buf.shape[0]);
-    int n = static_cast<int>(buf.shape[1]);
-    if (r <= 0)
-        throw std::runtime_error("r must be > 0");
-    int rank = r;
-    if (rank > m)
-        rank = m;
-    if (rank > n)
-        rank = n;
-    py::array_t<double> u({m, rank});
-    py::array_t<double> s(rank);
-    py::array_t<double> vt({rank, n});
-    int rc;
-    {
-        py::gil_scoped_release release;
-        rc = luma_svd_truncate(static_cast<const double *>(buf.ptr), u.mutable_data(),
-                                s.mutable_data(), vt.mutable_data(), m, n, rank);
-    }
-    if (rc != LUMA_OK)
-        luma_throw(rc, "luma_svd_truncate");
-    return py::make_tuple(u, s, vt);
-}
-
 PYBIND11_MODULE(_luma_native, m)
 {
-    m.doc() = "Luminas native kernels: product luma_kv_* and lossy baselines";
-    m.def("luma_kv_encode", &kv_encode, "product Enc (identity placeholder; no compression ratio)");
+    m.doc() = "Luminas product path (candidate lossless KV ABI). Not baselines.";
+    m.def("luma_kv_encode", &kv_encode,
+          "candidate product Enc (identity placeholder; do not report ratio)");
     m.def("luma_kv_decode", &kv_decode, py::arg("enc"), py::arg("n"),
-          "product Dec (identity placeholder)");
-    m.def("luma_quant_ternary_encode", &quant_ternary_encode, "lossy ternary weight baseline");
-    m.def("luma_quant_power_of_two_encode", &quant_power_of_two_encode, "lossy power-of-two block baseline");
-    m.def("luma_svd_truncate", &svd_truncate, "lossy truncated SVD baseline");
+          "candidate product Dec (identity placeholder)");
 }

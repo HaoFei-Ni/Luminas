@@ -79,7 +79,7 @@ def main() -> int:
     targets = list(config["scan"]["include_paths"])
     report_path = Path(config["report"]["json_report_path"])
     ruff_code = _run_ruff()
-    # complexipy must write JSON before ci_quality_gate reads it.
+    # complexipy must write JSON before reporting.python_gate reads it.
     quality_metrics.run_complexipy(targets, report_path)
     stages = [
         ("ruff", ruff_code),
