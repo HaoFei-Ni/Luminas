@@ -2,16 +2,14 @@
 
 C99 / CUDA kernels for Luminas. Product symbols are `luma_kv_*`. Quantization, truncated SVD, and int8 KV are **baselines only**.
 
-> **分层现状（2026-09）**：物理目录规划（`algorithm/` / `kernel/` / `wrapper/`）见 `../docs/arc/LUM-ARC-101`；本目录为现有代码所在地，迁移按该裁决执行，须同步本 README 与 `CMakeLists.txt`。尚未迁移前，现有文件保持当前位置。
+> **分层现状（2026-09，LUM-ARC-101 v1）**：物理分层（`algorithm/` / `kernel/` / `wrapper/`）已执行 Phase A 迁移——产品路径源移至 `../algorithm/`，pybind 绑定移至 `../wrapper/`（见 `../docs/arc/LUM-ARC-101`）。本目录保留 C-ABI 头、错误串、CUDA launchers、有损基线与其测试。
 
 ## Layout
 
 ```text
 lumina/kernel/
   luma_kernels.h                         C-ABI (only header bindings may call)
-  luma_status.c / luma_kv_ref.c / luma_kv_cpu.c
-  luma_bind_native.cpp                   pybind11 marshal for CPU
-  luma_bind_cuda.cpp                     pybind11 marshal for CUDA baselines
+  luma_status.c                          error strings
   luma_cuda_kernels.h                    CUDA launchers
   baseline/
     luma_baseline_ternary.c              lossy weight ternary
@@ -22,6 +20,12 @@ lumina/kernel/
   test/
     test_luma_kv.c                       L1/L2/L5 product path
     test_luma_baseline.c                 L1/L2 baselines
+
+分层迁移（LUM-ARC-101 Phase A）：
+  ../algorithm/luma_kv_ref.c             FP64 oracle
+  ../algorithm/luma_kv_cpu.c             product Enc/Dec
+  ../wrapper/luma_bind_native.cpp        pybind11 marshal for CPU
+  ../wrapper/luma_bind_cuda.cpp          pybind11 marshal for CUDA baselines
 ```
 
 `luma_kv_encode_f32` / `luma_kv_decode_f32` are a finite-checked **identity** with `enc_len == n`. That is the ABI and the 2-ulp oracle, not a published compressor. Do not report a compression ratio for them. `decode` takes the encoded buffer and its length plus the target length `n`; the identity path requires `enc_len == n`.

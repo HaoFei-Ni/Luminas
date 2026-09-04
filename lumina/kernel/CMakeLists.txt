@@ -13,8 +13,8 @@ option(LUMINA_BUILD_FUSED_DECODE "Include fused-decode baseline in the CUDA lib"
 
 set(LUMA_CPU_SOURCES
     luma_status.c
-    luma_kv_ref.c
-    luma_kv_cpu.c
+    ../algorithm/luma_kv_ref.c
+    ../algorithm/luma_kv_cpu.c
     baseline/luma_baseline_ternary.c
     baseline/luma_baseline_mxfp.c
     baseline/luma_baseline_truncated_svd.c
@@ -39,7 +39,7 @@ add_test(NAME luma_test_baseline COMMAND luma_test_baseline)
 if(LUMINA_BUILD_PYTHON)
     find_package(pybind11 CONFIG QUIET)
     if(pybind11_FOUND)
-        pybind11_add_module(_luma_native luma_bind_native.cpp)
+        pybind11_add_module(_luma_native ../wrapper/luma_bind_native.cpp)
         target_link_libraries(_luma_native PRIVATE luma_cpu)
     else()
         message(STATUS "pybind11 not found; skipping _luma_native")
@@ -59,7 +59,7 @@ if(LUMINA_BUILD_CUDA)
     set_target_properties(luma_cuda PROPERTIES CUDA_ARCHITECTURES "75;80;86;89")
 
     if(LUMINA_BUILD_PYTHON AND pybind11_FOUND)
-        pybind11_add_module(_luma_cuda luma_bind_cuda.cpp)
+        pybind11_add_module(_luma_cuda ../wrapper/luma_bind_cuda.cpp)
         target_link_libraries(_luma_cuda PRIVATE luma_cuda)
     endif()
 endif()

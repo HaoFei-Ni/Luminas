@@ -5,9 +5,9 @@
 
 | 目录 | 职责 | 现状 |
 |---|---|---|
-| `algorithm/` | 平台无关 ANSI C 压缩/解压数学（纯逻辑） | **规划中（空）** |
-| `kernel/` | CPU/CUDA 算子、并行映射、pybind 绑定入口 | 现有代码在此（C99 + baseline + CUDA + bind） |
-| `wrapper/` | 对外统一 API / 封装层（C-ABI、错误与内存管理透明化） | **规划中（空）** |
+| `algorithm/` | 平台无关 ANSI C 压缩/解压数学（纯逻辑） | 已启用（`luma_kv_ref.c` / `luma_kv_cpu.c`） |
+| `kernel/` | C-ABI 头、CUDA/CPU 算子、有损基线 | 现有代码在此（C99 + baseline + CUDA） |
+| `wrapper/` | 对外 API / pybind 绑定 / 封装 | 已启用（`luma_bind_*.cpp`） |
 | `theory/` | 架构无关方法笔记、闭合框架、推导 | 现有（`state-cache/`） |
 | `research/` | 实验协议、lab log、官方案例运行 | **规划中（空）** |
 | `tests/` | Python 测试（pytest） | 现有 `tests/test_luma_kernels.py` |
@@ -21,13 +21,12 @@
 - 物理 3 层（algorithm/kernel/wrapper）见 `eng-standard-skill` 最高优先级章节。
 - **两者归属口径以 `docs/arc/LUM-ARC-101` 为唯一裁决点**；未裁决前新代码默认落现有 `kernel/`，不新建散目录。
 
-## 当前文件归类规划（kernel/ 内，待 LUM-ARC-101 冻结后执行迁移）
+## 分层迁移记录（LUM-ARC-101 Phase A，2026-09 已执行）
 
-| 现有文件 | 规划归属 | 说明 |
+| 文件 | 迁移去向 | 说明 |
 |---|---|---|
-| `luma_kv_ref.c` / `luma_kv_cpu.c` | `algorithm/` | 平台无关压缩参考数学（C99） |
-| `baseline/*.c`、`baseline/*.cu` | `kernel/baseline/`（或 `kernel/` 内 baseline） | 有损基线对照，非产品路径 |
-| `luma_bind_native.cpp` / `luma_bind_cuda.cpp` | `wrapper/`（绑定层） | pybind11 marshal，无数值算法 |
-| `luma_cuda_kernels.h` / `luma_kernels.h` | `kernel/` | 算子接口头 |
+| `kernel/luma_kv_ref.c` / `kernel/luma_kv_cpu.c` | → `algorithm/` | 平台无关压缩参考/算法实现（C99） |
+| `kernel/luma_bind_native.cpp` / `kernel/luma_bind_cuda.cpp` | → `wrapper/` | pybind11 marshal，无数值算法 |
+| `kernel/baseline/*`、`kernel/luma_*kernels.h`、`kernel/test/*` | 留在 `kernel/` | 基线 / C-ABI 头 / 测试 |
 
-> 迁移必须同步 `kernel/CMakeLists.txt` 路径与 skill `paths`；禁止一次性大挪移。
+> 迁移同步了 `kernel/CMakeLists.txt` 源路径（`../algorithm/`、`../wrapper/`）；include 解析仍经 `target_include_directories(luma_cpu PUBLIC <kernel>)`。头文件拆分（Phase B）待办见 `docs/arc/LUM-ARC-101`。

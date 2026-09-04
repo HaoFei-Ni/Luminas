@@ -1,18 +1,21 @@
-# lumina/wrapper — 平台封装层（规划中）
+# lumina/wrapper — 平台封装层
 
-> 归属裁决：`../docs/arc/LUM-ARC-101`（当前为空目录，待冻结首批文件清单后迁移）。
+> 分层裁决：`lumina/docs/arc/LUM-ARC-101`（v1 生效，Phase A 已迁移）。本目录存放对外 API / 绑定 / 封装。
 
-## 应放入本目录的代码
+## 当前文件
 
-- 对外统一 API：封装平台差异、内存管理、错误处理
-- C-ABI / pybind11 绑定入口（marshal、dtype/shape 校验、GIL 释放）
-- 内部实现对调用方透明；头文件只暴露最小必要接口
+| 文件 | 职责 |
+|---|---|
+| `luma_bind_native.cpp` | pybind11 编组（CPU 产品路径） |
+| `luma_bind_cuda.cpp` | pybind11 编组（CUDA 基线，host↔device） |
+
+## 规则
+
+- 只做 marshal、dtype/shape 校验、GIL 释放、错误码→异常；**无数值算法**。
+- 编译时经 CMake include 路径解析 `../kernel/` 的 C-ABI 头（`luma_kernels.h` / `luma_cuda_kernels.h`）。
+- 头文件只暴露最小接口；`luma_*` 错误码经 `luma_strerror` 映射为 Python 异常。
 
 ## 不应放入
 
-- 任何数值算法本体（→ `../algorithm/` 或 `../kernel/`）
-- Python 调度/编排（→ `../research/` 或调度模块）
-
-## 参考规则
-
-- pybind 绑定 `.cpp` 只做 marshal/校验/异常映射，释放 GIL（`eng-standard-skill`）
+- 数值算法本体 → `../algorithm/` 或 `../kernel/`
+- Python 调度/编排 → `../research/` 或调度模块
