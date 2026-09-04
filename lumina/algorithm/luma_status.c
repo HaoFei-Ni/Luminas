@@ -1,5 +1,5 @@
 /* luma_status.c — C-ABI 错误码到短句。供测试、日志、绑定异常使用。 */
-#include "luma_kernels.h"
+#include "luma_kv.h"
 
 const char *luma_strerror(int rc)
 {

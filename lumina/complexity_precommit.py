@@ -1,0 +1,77 @@
+"""Cognitive-complexity gate executed by the root pre-commit hook.
+
+提交前分级门禁的「认知复杂度强校验」层：只扫本次暂存的 lumina Python 文件，
+复杂度数据来自 complexipy（多版本 schema 由 quality_metrics 归一化），阈值
+取 quality-gate.toml 的单一真值源（max_cognitive_complexity）。超出即失败并
+阻断提交；不执行全量四项门禁（那些下沉到 CI/手动入口 ci_quality_gate.py）。
+
+被 pre-commit 以 ``uv run --project lumina python lumina/complexity_precommit.py``
+调用，argv 为暂存的 Python 文件路径（相对仓库根）。
+"""
+
+from __future__ import annotations
+
+import sys
+import tempfile
+import tomllib
+from pathlib import Path
+from typing import Any, Dict
+
+import quality_metrics
+
+_LUMINA_DIR = Path(__file__).resolve().parent
+
+
+def _load_threshold() -> int:
+    """Read the cognitive-complexity threshold from quality-gate.toml."""
+    config_path = _LUMINA_DIR / "quality-gate.toml"
+    with config_path.open("rb") as handle:
+        data: Dict[str, Any] = tomllib.load(handle)
+    return int(data["thresholds"]["max_cognitive_complexity"])
+
+
+def _staged_targets(argv: list[str]) -> list[str]:
+    """Return staged python files from argv, or the configured scan roots."""
+    if argv:
+        return argv
+    config_path = _LUMINA_DIR / "quality-gate.toml"
+    with config_path.open("rb") as handle:
+        data: Dict[str, Any] = tomllib.load(handle)
+    roots = data["scan"]["include_paths"]
+    return [str(_LUMINA_DIR / root) for root in roots]
+
+
+def _report_excess(complexities: Dict[tuple[str, str], int], threshold: int) -> list[tuple[str, str, int]]:
+    """Collect (file_key, name, complexity) records above the threshold."""
+    return sorted(
+        [(key[0], key[1], value) for key, value in complexities.items() if value > threshold],
+        key=lambda item: item[2],
+        reverse=True,
+    )
+
+
+def main() -> int:
+    """Run the staged-file complexity scan and fail when any exceeds threshold."""
+    threshold = _load_threshold()
+    targets = _staged_targets(sys.argv[1:])
+    if not targets:
+        return 0
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as temp:
+        output = Path(temp.name)
+    try:
+        quality_metrics.run_complexipy(targets, output)
+        raw_report = quality_metrics.load_report(output)
+    finally:
+        output.unlink(missing_ok=True)
+    excess = _report_excess(quality_metrics.complexity_map(raw_report), threshold)
+    for file_key, name, value in excess:
+        print(f"[COMPLEXITY] {file_key}::{name} = {value} (> {threshold})")
+    if excess:
+        print(f"❌ [COMPLEXITY-FAIL] {len(excess)} 个函数认知复杂度超限（阈值 {threshold}）")
+        return 1
+    print(f"✅ [COMPLEXITY-PASS] 认知复杂度全部 ≤ {threshold}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

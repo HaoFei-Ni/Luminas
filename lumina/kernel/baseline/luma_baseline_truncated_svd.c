@@ -36,7 +36,7 @@ static int luma_jacobi_sym_eig(double *a, int n, double *v, double *e, int max_s
                 off += a[p * n + q] * a[p * n + q];
         }
         /* 相对容差，避免全零矩阵被误判为未收敛。 */
-        if (off <= 1e-24 * (1.0 + diag_ss))
+        if (off <= LUMA_JACOBI_CONVERGE_TOL * (1.0 + diag_ss))
             break;
 
         for (p = 0; p < n - 1; ++p) {
@@ -45,7 +45,7 @@ static int luma_jacobi_sym_eig(double *a, int n, double *v, double *e, int max_s
                 double apq = 0.5 * (a[p * n + q] + a[q * n + p]);
                 double app, aqq, tau, t, c, s, npp, nqq;
 
-                if (fabs(apq) < 1e-15)
+                if (fabs(apq) < LUMA_JACOBI_ROTATE_EPS)
                     continue;
                 app = a[p * n + p];
                 aqq = a[q * n + q];
@@ -98,7 +98,7 @@ static int luma_jacobi_sym_eig(double *a, int n, double *v, double *e, int max_s
             for (q = p + 1; q < n; ++q)
                 off += a[p * n + q] * a[p * n + q];
         }
-        if (off > 1e-20 * (1.0 + diag_ss))
+        if (off > LUMA_JACOBI_DIVERGE_TOL * (1.0 + diag_ss))
             return LUMA_ERR_NUMERIC;
     }
     return LUMA_OK;
@@ -233,7 +233,7 @@ int luma_baseline_truncated_svd(const double *x, int m, int n, int r,
                 double acc = 0.0;
                 for (k = 0; k < n; ++k)
                     acc += row[k] * vt[j * n + k];
-                u[i * r + j] = (s[j] > 1e-15) ? acc / s[j] : 0.0;
+                u[i * r + j] = (s[j] > LUMA_SVD_SINGULAR_EPS) ? acc / s[j] : 0.0;
             }
         }
     } else {
@@ -245,7 +245,7 @@ int luma_baseline_truncated_svd(const double *x, int m, int n, int r,
                 double acc = 0.0;
                 for (i = 0; i < m; ++i)
                     acc += u[i * r + j] * x[(size_t)i * (size_t)n + k];
-                vt[j * n + k] = (s[j] > 1e-15) ? acc / s[j] : 0.0;
+                vt[j * n + k] = (s[j] > LUMA_SVD_SINGULAR_EPS) ? acc / s[j] : 0.0;
             }
         }
     }

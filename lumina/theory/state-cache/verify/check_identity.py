@@ -1,7 +1,7 @@
 """P1/P2 脚手架：在当前恒等 Enc/Dec 上检查 2-ulp 门。
 
-不是闭合框架的证明。luma_kv_cpu.c 换成真公式后应继续用本门限；
-正式 CI 以 lumina/kernel/test/test_luma_kv.c 为准。
+不是闭合框架的证明。luma_kv_codec.c 换成真公式后应继续用本门限；
+正式 CI 以 lumina/tests/c/test_luma_kv.c 为准。
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ def main() -> None:
     enc, enc_len = identity_enc(s)
     hat = identity_dec(enc, len(s))
     assert enc_len == len(s)
-    assert all(within_2ulp(a, b) for a, b in zip(hat, s)), "P2 failed"
+    assert all(within_2ulp(a, b) for a, b in zip(hat, s, strict=True)), "P2 failed"
     print("P1/P2 identity scaffold OK")
 
 

@@ -32,7 +32,7 @@ int luma_baseline_ternary_encode(const float *w, long n, float threshold,
     s = (float)(sum / (double)n);
 
     /* 近零权重：全部编码为 0，避免除零和假阈值。 */
-    if (s <= 1e-12f) {
+    if (s <= LUMA_TERNARY_NEAR_ZERO_SCALE) {
         *scale = 0.0f;
         for (i = 0; i < n; ++i)
             codes[i] = 0;

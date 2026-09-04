@@ -92,7 +92,7 @@ static py::tuple baseline_ternary_encode(py::array_t<float, py::array::c_style> 
     return py::make_tuple(scale, codes);
 }
 
-static py::array_t<float> baseline_mxfp_quant(py::array_t<float, py::array::c_style> x,
+static py::array_t<float> baseline_pow2_block_quant(py::array_t<float, py::array::c_style> x,
                                              int mantissa_bits, int block_size)
 {
     luma_require_c_f32(x, "x");
@@ -102,11 +102,11 @@ static py::array_t<float> baseline_mxfp_quant(py::array_t<float, py::array::c_st
     int rc;
     {
         py::gil_scoped_release release;
-        rc = luma_baseline_mxfp_quant(static_cast<const float *>(buf.ptr), n, mantissa_bits,
+        rc = luma_baseline_pow2_block_quant(static_cast<const float *>(buf.ptr), n, mantissa_bits,
                                       block_size, out.mutable_data());
     }
     if (rc != LUMA_OK)
-        luma_throw(rc, "luma_baseline_mxfp_quant");
+        luma_throw(rc, "luma_baseline_pow2_block_quant");
     return out;
 }
 
@@ -141,10 +141,10 @@ static py::tuple baseline_truncated_svd(py::array_t<double, py::array::c_style> 
 PYBIND11_MODULE(_luma_native, m)
 {
     m.doc() = "Luminas native kernels: product luma_kv_* and lossy baselines";
-    m.def("kv_encode", &kv_encode, "product Enc (identity placeholder; no compression ratio)");
-    m.def("kv_decode", &kv_decode, py::arg("enc"), py::arg("n"),
+    m.def("luma_kv_encode", &kv_encode, "product Enc (identity placeholder; no compression ratio)");
+    m.def("luma_kv_decode", &kv_decode, py::arg("enc"), py::arg("n"),
           "product Dec (identity placeholder)");
-    m.def("baseline_ternary_encode", &baseline_ternary_encode, "lossy ternary weight baseline");
-    m.def("baseline_mxfp_quant", &baseline_mxfp_quant, "lossy MXFP-style baseline");
-    m.def("baseline_truncated_svd", &baseline_truncated_svd, "lossy truncated SVD baseline");
+    m.def("luma_baseline_ternary_encode", &baseline_ternary_encode, "lossy ternary weight baseline");
+    m.def("luma_baseline_pow2_block_quant", &baseline_pow2_block_quant, "lossy power-of-two block baseline");
+    m.def("luma_baseline_truncated_svd", &baseline_truncated_svd, "lossy truncated SVD baseline");
 }

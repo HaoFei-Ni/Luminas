@@ -3,7 +3,7 @@
  * 语义必须保持「有限输入上的恒等复制」。encode/decode 换成真压缩算法后，
  * L5 仍用本函数当真值，禁止改成「跟当前有损核对齐」。
  */
-#include "luma_kernels.h"
+#include "luma_kv.h"
 #include <math.h>
 
 int luma_kv_ref_copy_f64(const double *x, long n, double *out)

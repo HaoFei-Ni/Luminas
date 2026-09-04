@@ -1,0 +1,26 @@
+# ==============================================================================
+# lumina/ Python 工具链产物（非源码，不参与版本控制）
+# 与 pyproject.toml 的 ruff/mypy/pytest/complexipy cache 配置一致
+# ==============================================================================
+
+# uv 虚拟环境与锁文件之外的运行时产物
+.venv/
+
+# Python 字节码缓存
+__pycache__/
+*.pyc
+
+# 工具缓存（pytest/mypy/ruff 统一收敛到 test/.cache，见 pyproject.toml）
+test/.cache/
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+
+# 质量门禁产物（complexipy JSON 原始报告 + Markdown 报告）
+complexipy-report.json
+complexipy-report.md
+
+# 覆盖率产物（pytest-cov / coverage.py）
+.coverage
+coverage.xml
+htmlcov/

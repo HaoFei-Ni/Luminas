@@ -38,20 +38,30 @@
 | `kernel/luma_bind_native.cpp`、`kernel/luma_bind_cuda.cpp` | → `wrapper/`（pybind11 编组） |
 | `kernel/CMakeLists.txt` | 源路径改 `../algorithm/`、`../wrapper/`；include 解析经 `target_include_directories(luma_cpu PUBLIC <kernel>)` |
 
-> 验证：本机无工具链，未跑 `ctest`。构建验证命令：`cmake -S lumina/kernel -B outputs/build/kernel && cmake --build outputs/build/kernel && ctest --test-dir outputs/build/kernel --output-on-failure`。
+> 验证：MSVC 19.51（BuildTools 18）+ Ninja 可构建。统一入口为 superproject：`cmake -S lumina -B outputs/build/lumina && cmake --build outputs/build/lumina && ctest --test-dir outputs/build/lumina --output-on-failure`。
 
-### Phase B（待办，需构建验证环境）
+### Phase B（已完成，2026-09-04）
 
-**技术债**：`algorithm/` 源目前 `#include "luma_kernels.h"`（位于 `kernel/`），构成 algorithm→kernel 的头依赖。拆分方案：
+**原技术债**：`algorithm/` 源 `#include "luma_kernels.h"`（位于 `kernel/`），构成 algorithm→kernel 的头依赖。已按下列方案消除：
 
-1. 从 `luma_kernels.h` 抽出纯算法层契约 → `algorithm/luma_kv.h`（错误码、`luma_kv_*` / `luma_kv_ref_*` 声明）。
-2. `kernel/` 保留基线/CUDA 声明（`luma_baseline_*`、`luma_cuda_*`），include `luma_kv.h`。
-3. `wrapper/` 绑定 include 上述头；`luma_status.c` 随错误码定义归属 `algorithm/`（或独立公共位置，二选一并记录）。
-4. 同步 `CMakeLists.txt` include 目录与各 README；跑 ctest 全绿后合入。
+1. 抽出纯算法层契约 → `algorithm/luma_kv.h`（错误码、`luma_strerror`、`luma_kv_*` / `luma_kv_ref_*` 声明）。
+2. `kernel/luma_kernels.h` 只保留基线/CUDA 声明（`luma_baseline_*`）并 `#include "luma_kv.h"`；`LUMA_CUDA_MAX_HEAD_DIM` 迁入 `luma_cuda_kernels.h`。
+3. `luma_status.c` 随错误码定义归属 `algorithm/`（**归属决策：algorithm/，非独立 common/**）；`algorithm/` 源改 include 本层 `luma_kv.h`。
+4. 同步 `kernel/CMakeLists.txt`（源路径 `../algorithm/luma_status.c`、include 目录加 `../algorithm`）与各 README。
+
+> 构建验证（2026-09-04）：MSVC 19.51（BuildTools 18）+ Ninja 编译 11/11 零警告，`ctest` 2/2 全绿（`luma_test_kv` / `luma_test_baseline`）。命令见 `kernel/README.md`。
+
+### Phase C（已完成，2026-09-04）— 命名规范化 + superproject
+
+在 LUM-ENG-101 命名约束落地后执行：`luma_kv_cpu.c`→`luma_kv_codec.c`；`mxfp`→`pow2_block`；Python 绑定导出名补 `luma_`/`luma_cuda_` 前缀；抽 `kernel/luma_cuda_util.h` 共享 `luma_is_pow2`/`luma_reduce_sum`；容差/阈值具名化；测试树合并为 `tests/c/` + `tests/python/`。
+
+同时建立顶层 superproject `lumina/CMakeLists.txt`，将构建图拆为三层目标：`luma_algorithm`（algorithm/）→ `luma_cpu`/`luma_cuda`（kernel/）→ `_luma_native`/`_luma_cuda`（wrapper/）。`kernel/` 不再跨目录引用 `../algorithm/`、`../wrapper/` 源。
+
+> 验证（2026-09-04）：superproject 编译 12/12，`ctest` 2/2 全绿。
 
 ## 待办
 
 - [x] 冻结 `algorithm/`、`wrapper/` 首批文件清单（Phase A）
 - [x] 迁移并同步 CMake / README（Phase A）
+- [x] Phase B 头拆分（`luma_kv.h` / `luma_status.c` 归 `algorithm/`；ctest 验证待可构建环境）
 - [ ] 三技能 owner 终审本 v1（arch / eng / research 已隐含认可，正式签字记录留痕）
-- [ ] Phase B 头拆分（需可构建环境，含 ctest 验证）

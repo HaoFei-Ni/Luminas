@@ -11,23 +11,8 @@
  * 作为对照核，当前 token 不会写回 cache。
  */
 #include "luma_cuda_kernels.h"
+#include "luma_cuda_util.h"
 #include <math.h>
-
-static int luma_is_pow2(int x)
-{
-    return x > 0 && (x & (x - 1)) == 0;
-}
-
-/* 块内求和归约。调用前后调用方负责 syncthreads 边界。 */
-__device__ static float luma_reduce_sum(float *red, int tid, int nthreads)
-{
-    for (int stride = nthreads >> 1; stride > 0; stride >>= 1) {
-        if (tid < stride)
-            red[tid] += red[tid + stride];
-        __syncthreads();
-    }
-    return red[0];
-}
 
 __global__ void luma_cuda_baseline_fused_decode_kernel(
     const __half *__restrict__ x,

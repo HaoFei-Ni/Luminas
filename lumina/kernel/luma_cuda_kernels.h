@@ -11,6 +11,9 @@
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
 
+/* fused-decode 共享内存按此上限分配；超过返回 LUMA_ERR_UNSUPPORTED。 */
+#define LUMA_CUDA_MAX_HEAD_DIM 256
+
 #ifdef __cplusplus
 extern "C" {
 #endif

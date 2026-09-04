@@ -29,20 +29,20 @@
 |---|---|---|
 | P0 | 状态缓存的架构无关定义与接口 | 本文 §P0 |
 | P1 | 重构：\(\mathrm{Dec}\circ\mathrm{Enc}\) 在定义域上的误差界 | `verify/` + `luma_kv_ref_copy_f64` |
-| P2 | 2-ulp 门与 P1 的包含关系 | `lumina/kernel/test/test_luma_kv.c` L5 |
+| P2 | 2-ulp 门与 P1 的包含关系 | `lumina/tests/c/test_luma_kv.c` L5 |
 | P3 | 下游算子（注意力 / 扫描 / 脉冲累积）对 \(\widehat{S}\) 与 \(S\) 的等价条件 | framework 推导；未证之前不做无损宣称 |
 | P4 | 时间、字节随 \(T\) 的复杂度 | framework；实现对照 `luma_kv_*` |
 | P5 | 闭合：无损区的失效边界（长度、动态范围、非有限输入） | verify + 实验室日志 |
 
-## 与 kernel 的挂钩
+## 与代码的挂钩
 
 | 理论对象 | C-ABI | 文件 |
 |---|---|---|
-| 预言机 \(S \mapsto S\)（FP64） | `luma_kv_ref_copy_f64` | `lumina/kernel/luma_kv_ref.c` |
-| \(\mathrm{Enc}\) | `luma_kv_encode_f32` | `lumina/kernel/luma_kv_cpu.c` |
+| 预言机 \(S \mapsto S\)（FP64） | `luma_kv_ref_copy_f64` | `lumina/algorithm/luma_kv_ref.c` |
+| \(\mathrm{Enc}\) | `luma_kv_encode_f32` | `lumina/algorithm/luma_kv_codec.c` |
 | \(\mathrm{Dec}\) | `luma_kv_decode_f32` | 同上 |
 | 有损对照 | `luma_baseline_*` / `luma_cuda_baseline_*` | `lumina/kernel/baseline/` |
-| L1/L2/L5 | `test_luma_kv` | `lumina/kernel/test/test_luma_kv.c` |
+| L1/L2/L5 | `test_luma_kv` | `lumina/tests/c/test_luma_kv.c` |
 
 公式落地时**只改 encode/decode 函数体**，不改预言机，不把 baseline 抬回产品路径。
 

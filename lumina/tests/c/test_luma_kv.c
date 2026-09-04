@@ -22,7 +22,7 @@ static void expect_ok(int rc, const char *what)
 /* |x-ref| <= 2 * 2^{-23} * max(1, |ref|) */
 static int within_2ulp(float x, double ref)
 {
-    double lim = 2.0 * 1.1920928955078125e-7 * (fabs(ref) > 1.0 ? fabs(ref) : 1.0);
+    double lim = 2.0 * LUMA_ULP32 * (fabs(ref) > 1.0 ? fabs(ref) : 1.0);
     return fabs((double)x - ref) <= lim;
 }
 

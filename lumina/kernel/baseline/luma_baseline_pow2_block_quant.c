@@ -1,4 +1,4 @@
-/* luma_baseline_mxfp.c — 块共享 2 次幂尺度的尾数量化（有损基线）。
+/* luma_baseline_pow2_block_quant.c — 块共享 2 次幂尺度的尾数量化（有损基线）。
  *
  * 不是 OCP MX 规范的 bit-exact 实现，只复现「每块一个 power-of-two scale」
  * 这一对照思路。重构误差远大于 2-ulp，不得称无损。
@@ -20,14 +20,14 @@ static float luma_quant_positive(float x, int mbits)
     return ldexpf(q, e);
 }
 
-int luma_baseline_mxfp_quant(const float *x, long n, int mantissa_bits,
+int luma_baseline_pow2_block_quant(const float *x, long n, int mantissa_bits,
                              int block_size, float *out)
 {
     long start;
 
     if (!x || !out || n < 0 || block_size <= 0)
         return LUMA_ERR_ARG;
-    if (mantissa_bits < 0 || mantissa_bits > LUMA_MXFP_MAX_MANTISSA_BITS)
+    if (mantissa_bits < 0 || mantissa_bits > LUMA_POW2_BLOCK_MAX_MANTISSA_BITS)
         return LUMA_ERR_ARG;
 
     for (start = 0; start < n; start += block_size) {

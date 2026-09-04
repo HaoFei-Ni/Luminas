@@ -2,28 +2,29 @@
 
 C99 / CUDA kernels for Luminas. Product symbols are `luma_kv_*`. Quantization, truncated SVD, and int8 KV are **baselines only**.
 
-> **分层现状（2026-09，LUM-ARC-101 v1）**：物理分层（`algorithm/` / `kernel/` / `wrapper/`）已执行 Phase A 迁移——产品路径源移至 `../algorithm/`，pybind 绑定移至 `../wrapper/`（见 `../docs/arc/LUM-ARC-101`）。本目录保留 C-ABI 头、错误串、CUDA launchers、有损基线与其测试。
+> **分层现状（2026-09，LUM-ARC-101 v1）**：物理分层（`algorithm/` / `kernel/` / `wrapper/`）已执行 Phase A + Phase B 迁移——产品路径源与契约头（`luma_kv.h`、`luma_status.c`）移至 `../algorithm/`，pybind 绑定移至 `../wrapper/`（见 `../docs/arc/LUM-ARC-101`）。本目录保留有损基线声明（`luma_kernels.h`）、CUDA launchers、有损基线与测试。
 
 ## Layout
 
 ```text
 lumina/kernel/
-  luma_kernels.h                         C-ABI (only header bindings may call)
-  luma_status.c                          error strings
-  luma_cuda_kernels.h                    CUDA launchers
+  luma_kernels.h                         baseline C-ABI (includes ../algorithm/luma_kv.h)
+  luma_cuda_kernels.h                    CUDA launchers (incl. LUMA_CUDA_MAX_HEAD_DIM)
+  luma_cuda_util.h                       shared host/device utils (is_pow2 / reduce_sum)
   baseline/
     luma_baseline_ternary.c              lossy weight ternary
-    luma_baseline_mxfp.c                 lossy MXFP-style block quant
+    luma_baseline_pow2_block_quant.c      lossy power-of-two block quant
     luma_baseline_truncated_svd.c        lossy Gram+Jacobi SVD
     luma_cuda_baseline_kv_int8.cu        lossy int8 KV
     luma_cuda_baseline_fused_decode.cu   lossy low-rank+tail decode (opt-in)
-  test/
-    test_luma_kv.c                       L1/L2/L5 product path
-    test_luma_baseline.c                 L1/L2 baselines
+    20|
+  (C tests live in ../tests/c/ — see ../tests/README.md)
 
-分层迁移（LUM-ARC-101 Phase A）：
+分层迁移（LUM-ARC-101 Phase A + B）：
+  ../algorithm/luma_kv.h                 algorithm contract (errors + product decls)
+  ../algorithm/luma_status.c             error strings
   ../algorithm/luma_kv_ref.c             FP64 oracle
-  ../algorithm/luma_kv_cpu.c             product Enc/Dec
+  ../algorithm/luma_kv_codec.c             product Enc/Dec
   ../wrapper/luma_bind_native.cpp        pybind11 marshal for CPU
   ../wrapper/luma_bind_cuda.cpp          pybind11 marshal for CUDA baselines
 ```
@@ -35,15 +36,15 @@ Method math (P0–P5) lives in [`lumina/theory/state-cache/`](../theory/state-ca
 ## Build
 
 ```bash
-cmake -S lumina/kernel -B outputs/build/kernel
-cmake --build outputs/build/kernel
-ctest --test-dir outputs/build/kernel --output-on-failure
+cmake -S lumina -B outputs/build/lumina
+cmake --build outputs/build/lumina
+ctest --test-dir outputs/build/lumina --output-on-failure
 ```
 
 Optional:
 
 ```bash
-cmake -S lumina/kernel -B outputs/build/kernel \
+cmake -S lumina -B outputs/build/lumina \
   -DLUMINA_BUILD_CUDA=ON \
   -DLUMINA_BUILD_FUSED_DECODE=ON
 ```

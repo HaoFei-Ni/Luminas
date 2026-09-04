@@ -114,7 +114,7 @@ PYBIND11_MODULE(_luma_cuda, m)
 {
     m.doc() = "Luminas CUDA baselines (lossy). Not the product lossless KV path.";
     m.def(
-        "baseline_kv_int8",
+        "luma_cuda_baseline_kv_int8",
         &baseline_kv_int8,
         py::arg("x"),
         py::arg("block_size"),

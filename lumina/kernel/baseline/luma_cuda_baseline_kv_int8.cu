@@ -8,12 +8,8 @@
  * 这不是无损 KV。绑定层的 H2D 往返会吃掉加速，正式路径应传入设备指针。
  */
 #include "luma_cuda_kernels.h"
+#include "luma_cuda_util.h"
 #include <math.h>
-
-static int luma_is_pow2(int x)
-{
-    return x > 0 && (x & (x - 1)) == 0;
-}
 
 __global__ void luma_cuda_baseline_kv_int8_kernel(
     const __half *__restrict__ x,

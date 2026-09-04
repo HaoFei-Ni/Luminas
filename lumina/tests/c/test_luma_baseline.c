@@ -10,6 +10,10 @@
 
 static int g_fail;
 
+/* 测试容差（具名，禁止散落裸数字）。 */
+#define LUMA_TEST_FRO_DENOM_EPS 1e-30 /* fro_recon 分母保护 */
+#define LUMA_TEST_SVD_RECON_TOL 1e-8  /* 满秩 SVD 重构残差阈值 */
+
 static void expect_ok(int rc, const char *what)
 {
     if (rc != LUMA_OK) {
@@ -34,7 +38,7 @@ static double fro_recon(const double *x, const double *u, const double *s, const
             nrm += x[i * n + k] * x[i * n + k];
         }
     }
-    return sqrt(err) / (sqrt(nrm) + 1e-30);
+    return sqrt(err) / (sqrt(nrm) + LUMA_TEST_FRO_DENOM_EPS);
 }
 
 static void test_ternary(void)
@@ -53,19 +57,19 @@ static void test_ternary(void)
         g_fail = 1, fprintf(stderr, "FAIL ternary threshold\n");
 }
 
-static void test_mxfp(void)
+static void test_pow2_block(void)
 {
     float x[5] = {1.0f, -1.0f, 0.25f, 0.0f, 2.0f};
     float out[5];
 
-    expect_ok(luma_baseline_mxfp_quant(x, 5, 3, 2, out), "mxfp");
+    expect_ok(luma_baseline_pow2_block_quant(x, 5, 3, 2, out), "pow2_block");
     if (out[3] != 0.0f) {
-        fprintf(stderr, "FAIL mxfp zero\n");
+        fprintf(stderr, "FAIL pow2_block zero\n");
         g_fail = 1;
     }
-    /* mbits=40 超过 LUMA_MXFP_MAX_MANTISSA_BITS。 */
-    if (luma_baseline_mxfp_quant(x, 5, 40, 2, out) != LUMA_ERR_ARG)
-        g_fail = 1, fprintf(stderr, "FAIL mxfp mbits\n");
+    /* mbits=40 超过 LUMA_POW2_BLOCK_MAX_MANTISSA_BITS。 */
+    if (luma_baseline_pow2_block_quant(x, 5, 40, 2, out) != LUMA_ERR_ARG)
+        g_fail = 1, fprintf(stderr, "FAIL pow2_block mbits\n");
 }
 
 static void test_svd_full_rank(void)
@@ -88,14 +92,14 @@ static void test_svd_full_rank(void)
 
     expect_ok(luma_baseline_truncated_svd(xt, 4, 3, 3, u, s, vt), "svd tall");
     rel = fro_recon(xt, u, s, vt, 4, 3, 3);
-    if (rel > 1e-8) {
+    if (rel > LUMA_TEST_SVD_RECON_TOL) {
         fprintf(stderr, "FAIL svd tall residual %g\n", rel);
         g_fail = 1;
     }
 
     expect_ok(luma_baseline_truncated_svd(xw, 2, 4, 2, uw, sw, vtw), "svd wide");
     rel = fro_recon(xw, uw, sw, vtw, 2, 4, 2);
-    if (rel > 1e-8) {
+    if (rel > LUMA_TEST_SVD_RECON_TOL) {
         fprintf(stderr, "FAIL svd wide residual %g\n", rel);
         g_fail = 1;
     }
@@ -107,7 +111,7 @@ static void test_svd_full_rank(void)
 int main(void)
 {
     test_ternary();
-    test_mxfp();
+    test_pow2_block();
     test_svd_full_rank();
     if (g_fail) {
         fprintf(stderr, "test_luma_baseline FAILED\n");
