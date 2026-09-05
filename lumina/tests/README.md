@@ -34,6 +34,8 @@ uv run pytest --cov --cov-report=term-missing
 uv run python -m tools.run_quality_gate
 ```
 
+覆盖率（`pyproject.toml` `[tool.coverage]`）：`branch = true`，`fail_under = 100`。量测面含 `tools.checks.{docs,layout,naming.*,cognitive_level,robustness,arch_compliance,endurance,integration,standards}` 与 `tools.support.metrics`（行+分支均须 100%）。
+
 C 测试：
 
 ```bash

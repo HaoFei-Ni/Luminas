@@ -121,6 +121,7 @@ markers = [
     "l3: bind + kernel integration",
     "l4: benchmark / perf gate (default CI via tools.checks.performance.gate; 2 warmup + 5 timed, ≤2%)",
     "l5: 2-ulp lossless-numeric gate (product KV paths only)",
+    "endurance: long-soak / fatigue rounds (product encode/decode)",
     "theory: state-cache F1–F7 (run via verify-degeneration.py; not product L5)",
     "native: requires built _luma_native or _luma_baseline extension",
     "cuda: requires built _luma_cuda extension",
@@ -132,8 +133,22 @@ markers = [
 # ==============================================================================
 [tool.coverage.run]
 branch = true
-# 公共可测面：tools.support.metrics。wrapper/ 为 C++/pybind，无 Python 模块可纳入 --cov
-source = ["tools.support.metrics"]
+# L5 质量面公共 API：文档/目录/命名/认知档位 + metrics 门禁层；分支覆盖率 100%
+source = [
+    "tools.checks.docs",
+    "tools.checks.layout",
+    "tools.checks.naming.level",
+    "tools.checks.naming.file_check",
+    "tools.checks.naming.macro_check",
+    "tools.checks.naming.gate",
+    "tools.checks.python.cognitive_level",
+    "tools.checks.robustness",
+    "tools.checks.arch_compliance",
+    "tools.checks.endurance",
+    "tools.checks.integration",
+    "tools.checks.standards",
+    "tools.support.metrics",
+]
 omit = [
     "tests/*",
     "theory/*",
@@ -146,8 +161,8 @@ omit = [
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
-# 对齐 lumina-eng-skill test-matrix「Public API」门槛；仅对 source 内模块生效
-fail_under = 80
+# 对齐「分支全覆盖」：source 内模块行+分支必须 100%
+fail_under = 100
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.:",

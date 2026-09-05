@@ -202,6 +202,76 @@ file_glob = "LUM-RES-*.md"
 required_skill = "lumina-res-skill"
 doc_id_prefix = "LUM-RES-"
 
+# ------------------------------ 鲁棒性与异常容错测试 L5 ------------------------------
+# L5 = HA 全开 ⊂ 未检异常=0 ⊂ 空引用=0 ⊂ 全局态封顶 ⊂ 产品/C L2 边界测试存在。
+# level=L5 时下列五开关必须为 true；禁止局部降级。
+[robustness_standard]
+enable = true
+level = "L5"
+require_ha_check = true
+require_zero_unchecked_exceptions = true
+require_zero_none_risk = true
+require_global_state_cap = true
+require_boundary_tests = true
+max_unchecked_exception_paths = 0
+max_none_reference_risk = 0
+max_global_state_variables = 2
+boundary_files = [
+    "tests/c/test_luma_kv.c",
+    "tests/python/product/test_kv_properties.py",
+]
+boundary_markers = ["L2", "ERR_ARG", "LUMA_ERR", "pytest.mark.l2"]
+
+# ------------------------------ 架构合规性测试 L5 ------------------------------
+# L5 = 架构检查全开 ⊂ 环=0 ⊂ 扇出/继承/克隆封顶 ⊂ 架构单测制品存在。
+[architecture_standard]
+enable = true
+level = "L5"
+require_architecture_check = true
+require_zero_cycles = true
+require_fan_out_cap = true
+require_inheritance_cap = true
+require_clone_cap = true
+require_architecture_tests = true
+max_cyclic_dependencies = 0
+max_module_fan_out = 8
+max_inheritance_depth = 4
+max_duplicate_code_blocks = 0
+architecture_test_files = ["tests/python/checks/architecture/test_import_graph.py"]
+architecture_test_markers = ["cycle", "fan_out", "inheritance", "duplication"]
+
+# ------------------------------ 长稳与疲劳测试 L5 ------------------------------
+# L5 = perf 全开 ⊂ 延迟回归≤2% ⊂ warmup+timed 协议 ⊂ 疲劳轮次≥100 ⊂ 长稳用例存在。
+[endurance_standard]
+enable = true
+level = "L5"
+require_perf_enable = true
+require_latency_cap = true
+require_protocol_warmup_timed = true
+require_endurance_tests = true
+require_min_fatigue_rounds = true
+max_latency_regression = 0.02
+min_fatigue_rounds = 100
+protocol_file = "tools/checks/performance/protocol.py"
+protocol_markers = ["warmup", "timed", "WARMUP_RUNS", "TIMED_RUNS"]
+endurance_test_files = ["tests/python/product/test_kv_endurance.py"]
+endurance_markers = ["endurance", "fatigue", "FATIGUE_ROUNDS", "100"]
+
+# ------------------------------ 端到端集成测试 L5 ------------------------------
+# L5 = Python L3 bind+kernel ⊂ C 产品路径 ⊂ native/roundtrip 线索。
+[integration_standard]
+enable = true
+level = "L5"
+require_python_l3_tests = true
+require_c_product_tests = true
+require_native_marker = true
+require_roundtrip_marker = true
+require_bind_kernel_agreement = true
+python_integration_files = ["tests/python/product/test_kernels.py"]
+python_integration_markers = ["pytest.mark.l3", "pytest.mark.native", "roundtrip"]
+c_integration_files = ["tests/c/test_luma_kv.c"]
+c_integration_markers = ["L1", "L5", "encode", "decode"]
+
 # ------------------------------ 性能 L4 ------------------------------
 # 工作负载必须命中产品 Binding（或文档化的核入口），禁止仅以 list-saxpy 顶替。
 [perf_standard]

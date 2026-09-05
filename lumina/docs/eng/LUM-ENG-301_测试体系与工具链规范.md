@@ -39,6 +39,10 @@ uv run python -m tools.run_quality_gate
 | perf-l4 | `tools.checks.performance.gate` | 2+5 timed runs; ≤2% regression |
 | docs-l5 | `tools.checks.docs.gate` | 架构/技术/实验研究文档质量 L5 |
 | layout-l5 | `tools.checks.layout.gate` | 目录结构质量 L5 |
+| robustness-l5 | `tools.checks.robustness.gate` | 鲁棒性与异常容错测试 L5 |
+| arch-compliance-l5 | `tools.checks.arch_compliance.gate` | 架构合规性测试 L5 |
+| endurance-l5 | `tools.checks.endurance.gate` | 长稳与疲劳测试 L5 |
+| integration-l5 | `tools.checks.integration.gate` | 端到端集成测试 L5 |
 
 Commit-time (seconds): root `.pre-commit-config.yaml` → ruff + `tools.complexity_precommit` only.
 
@@ -52,7 +56,17 @@ Commit-time (seconds): root `.pre-commit-config.yaml` → ruff + `tools.complexi
 
 ### 3.2 Package layout
 
-- `tools/checks/` — analyzers（architecture / native / reliability / naming / performance / python / comments / docs / layout）
+- `tools/checks/` — analyzers（… / docs / layout / robustness / arch_compliance / endurance / integration / standards）
 - `tools/reporting/` — Python structure gate + bilingual report
 - `tools/support/` — cache, Hypothesis, metrics facade
 - `tests/python/{checks,support,product}/` — mirrors the above taxonomy
+
+### 3.3 Python 覆盖率（分支 100%）
+
+真值源：`pyproject.toml` `[tool.coverage]`。`branch = true`；`fail_under = 100`。
+
+量测面（公共 API）：`tools.checks.docs` · `layout` · `naming.*` · `cognitive_level` · `robustness` · `arch_compliance` · `endurance` · `integration` · `standards` · `tools.support.metrics`。
+
+```bash
+uv run pytest tests/python/checks tests/python/support --cov --cov-report=term-missing
+```

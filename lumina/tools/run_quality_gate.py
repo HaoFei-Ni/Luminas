@@ -8,7 +8,11 @@ Always runs with cwd = ``lumina/`` so report paths stay stable:
 4. ``tools.checks.naming.gate`` (file naming quality L5);
 5. ``tools.checks.performance.gate`` (L4: 2+5 timed runs, ≤2% regression);
 6. ``tools.checks.docs.gate`` (document quality L5: arc / eng / res);
-7. ``tools.checks.layout.gate`` (directory structure quality L5).
+7. ``tools.checks.layout.gate`` (directory structure quality L5);
+8. ``tools.checks.robustness.gate`` (robustness / fault-tolerance tests L5);
+9. ``tools.checks.arch_compliance.gate`` (architecture compliance tests L5);
+10. ``tools.checks.endurance.gate`` (endurance / fatigue tests L5);
+11. ``tools.checks.integration.gate`` (end-to-end integration tests L5).
 
 Commit-time cognitive complexity uses ``tools.complexity_precommit``; do not
 fold this full suite into a hook.
@@ -77,7 +81,7 @@ def _print_summary(stages: list[tuple[str, int]]) -> int:
 
 
 def main() -> int:
-    """Ruff → Python → C → naming L5 → L4 perf → docs L5 → layout L5."""
+    """Ruff → Python → C → naming → perf → docs → layout → robustness/arch/endurance/integration L5."""
     os.chdir(_LUMINA_DIR)
     config = _load_config()
     targets = list(config["scan"]["include_paths"])
@@ -93,6 +97,10 @@ def main() -> int:
         ("perf-l4", _run_module("tools.checks.performance.gate")),
         ("docs-l5", _run_module("tools.checks.docs.gate")),
         ("layout-l5", _run_module("tools.checks.layout.gate")),
+        ("robustness-l5", _run_module("tools.checks.robustness.gate")),
+        ("arch-compliance-l5", _run_module("tools.checks.arch_compliance.gate")),
+        ("endurance-l5", _run_module("tools.checks.endurance.gate")),
+        ("integration-l5", _run_module("tools.checks.integration.gate")),
     ]
     return _print_summary(stages)
 

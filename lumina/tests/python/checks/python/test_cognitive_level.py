@@ -30,3 +30,14 @@ def test_unknown_level_is_rejected() -> None:
     config = {"thresholds": {"cognitive_complexity_level": "L9", "max_cognitive_complexity": 5}}
     hits = cognitive_level_violations(config)
     assert hits and "未知" in hits[0]["issue"]
+
+
+def test_empty_level_skips() -> None:
+    """Unset cognitive_complexity_level emits no violations."""
+    assert cognitive_level_violations({"thresholds": {}}) == []
+
+
+def test_default_max_uses_cap() -> None:
+    """Missing max_cognitive_complexity defaults to the tier cap."""
+    config = {"thresholds": {"cognitive_complexity_level": "L2"}}
+    assert cognitive_level_violations(config) == []

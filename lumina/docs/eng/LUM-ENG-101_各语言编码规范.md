@@ -183,6 +183,40 @@
 
 `docs/pm/` 与各域 `README.md` 不在本门禁扫描范围。
 
+## 8.4 鲁棒性与异常容错测试门禁（L5 工业最高档，强制）
+
+`quality-gate.toml` `[robustness_standard]` → `tools.checks.robustness.gate`：
+
+| 档位 | 配置要点 | 裁决 |
+|---|---|---|
+| **L5**（现行） | `level = "L5"`：五开关全开——`enable_ha_check`、未检异常路径 ≤ 0、空引用风险 ≤ 0、全局态 ≤ 2、产品/C L2 边界测试文件存在且含 L2/`ERR_ARG`/`pytest.mark.l2` 线索 | 容错可验收 |
+
+静态 HA 度量仍由 `python-structure`（`ha_violations`）执行；本档锁定配置与边界测试制品，禁止「有门禁开关、无丑输入用例」。
+
+## 8.5 架构合规性测试门禁（L5，强制）
+
+`quality-gate.toml` `[architecture_standard]` → `tools.checks.arch_compliance.gate`：
+
+| 档位 | 配置要点 | 裁决 |
+|---|---|---|
+| **L5**（现行） | `enable_architecture_check`；环=0、扇出≤8、继承≤4、克隆块=0；`tests/python/checks/architecture/test_import_graph.py` 含 cycle/fan_out/inheritance/duplication 线索 | 架构可验收 |
+
+## 8.6 长稳与疲劳测试门禁（L5，强制）
+
+`quality-gate.toml` `[endurance_standard]` → `tools.checks.endurance.gate`：
+
+| 档位 | 配置要点 | 裁决 |
+|---|---|---|
+| **L5**（现行） | `perf_standard.enable`；延迟回归≤2%；`protocol.py` warmup+timed；`min_fatigue_rounds ≥ 100`；`tests/python/product/test_kv_endurance.py` 含 endurance/fatigue 线索 | 长稳可验收 |
+
+## 8.7 端到端集成测试门禁（L5，强制）
+
+`quality-gate.toml` `[integration_standard]` → `tools.checks.integration.gate`：
+
+| 档位 | 配置要点 | 裁决 |
+|---|---|---|
+| **L5**（现行） | Python `test_kernels.py` 含 L3/native/roundtrip；C `test_luma_kv.c` 含 L1/L5/encode/decode | 集成可验收 |
+
 ## 9. 无魔法数字（强制）
 
 容差/阈值必须具名（已落地）：`LUMA_TERNARY_NEAR_ZERO`、`LUMA_JACOBI_*`、`LUMA_SVD_SINGULAR_EPS`、`LUMA_ULP32`。禁止 `LUMA_BASELINE_*` 别名与函数体/测试体内散落裸数字。

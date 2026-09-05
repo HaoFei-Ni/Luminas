@@ -1,4 +1,4 @@
-"""Unit tests for layout-quality L5 config and tree checks."""
+"""Layout L5 switch and banned-root coverage."""
 
 from __future__ import annotations
 
@@ -61,3 +61,8 @@ def test_banned_common_root_flagged(tmp_path: Path) -> None:
     }
     hits = layout_violations(config, root=tmp_path)
     assert any(item["target"] == "common" for item in hits)
+
+
+def test_enable_false_returns_empty(tmp_path: Path) -> None:
+    """Disabled layout_standard yields no findings."""
+    assert layout_violations({"layout_standard": {"enable": False}}, root=tmp_path) == []

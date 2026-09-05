@@ -50,3 +50,9 @@ def test_l5_passes_when_complete() -> None:
         }
     }
     assert naming_level_violations(config) == []
+
+
+def test_non_l5_skips_enforcement() -> None:
+    """Non-L5 naming configs emit no level findings."""
+    config = {"naming_standard": {"level": "L0", "require_filename_rules": False}}
+    assert naming_level_violations(config) == []

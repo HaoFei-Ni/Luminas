@@ -15,6 +15,11 @@ Industry-style layout: **checks** (analyzers), **reporting** (verdicts), **suppo
 | `checks/comments` | Why-comment policy for complex statements |
 | `checks/docs` | Formal Markdown L5 (arc / eng / res) |
 | `checks/layout` | Directory structure L5 (ARC-101 layers + planes) |
+| `checks/robustness` | Robustness / fault-tolerance tests L5 |
+| `checks/arch_compliance` | Architecture compliance tests L5 |
+| `checks/endurance` | Endurance / fatigue tests L5 |
+| `checks/integration` | End-to-end integration tests L5 |
+| `checks/standards` | Shared L5 standard helpers |
 | `reporting` | Python structure gate + bilingual Markdown/JSON |
 | `support` | Cache layout, Hypothesis profiles, metrics facade |
 
@@ -22,13 +27,9 @@ Industry-style layout: **checks** (analyzers), **reporting** (verdicts), **suppo
 
 ```bash
 uv run python -m tools.run_quality_gate
-uv run python -m tools.complexity_precommit
-uv run python -m tools.reporting.python_gate
-uv run python -m tools.checks.native.gate
-uv run python -m tools.checks.naming.gate
-uv run python -m tools.checks.performance.gate
-uv run python -m tools.checks.docs.gate
-uv run python -m tools.checks.layout.gate
+uv run python -m tools.checks.arch_compliance.gate
+uv run python -m tools.checks.endurance.gate
+uv run python -m tools.checks.integration.gate
 ```
 
 Authority: `../quality-gate.toml`. Artifacts: `../tests/reports/`.
